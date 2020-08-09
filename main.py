@@ -21,7 +21,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(500, 500)
 
 
-        map = fileIO.parseFile("test.mm")
+        map = fileIO.parseFile("example.mm")
 
         self.mapper = mapper.FreeFormMap(map)
         self.mapper.setMinimumSize(500, 500)

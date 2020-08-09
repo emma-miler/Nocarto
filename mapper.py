@@ -45,6 +45,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.setMinimumSize(1000, 1000)
 
         for node in map:
+            # TODO: implement positioning for mindmaps
             self.addNode(node["text"], [node["position"], 300], node["connections"], id=node["id"])
 
         for node in self.nodes.values():

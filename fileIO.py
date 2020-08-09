@@ -2,6 +2,7 @@ import xmltodict
 import pprint
 import json
 from itertools import chain
+import re
 
 def parseFile(inFile):
     if inFile[-3:] == ".mm":
@@ -31,7 +32,10 @@ def parseFile(inFile):
 
 def makeNode(parent, inNode, inputType):
     retNode = {}
-    retNode["id"] = int(inNode["@ID"].strip("ID_"))
+    try:
+        retNode["id"] = int(re.sub("[^0-9]", "", inNode["@ID"]))
+    except:
+        retNode["id"] = 0
     if "@TEXT" in inNode:
         retNode["text"] = inNode["@TEXT"]
     else:
