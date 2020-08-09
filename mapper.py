@@ -33,52 +33,72 @@ class OverlayWidget(QtWidgets.QWidget):
         qp.end()
 
 class FreeFormMap(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, map, parent=None):
         super().__init__(parent=parent)
         self.parent = parent
         self.nodes = {}
         self.edges = []
+        self.map = map
 
         self.cachedTreeBounds = [[0, 0], [0, 0]]
 
         self.setMinimumSize(1000, 1000)
 
-        self.root = self.addNode("1", (200, 300), None)
-        x1 = self.addNode("2", (400, 300), self.root.id)
-        x2 = self.addNode("3", (300, 300), self.root.id)
-        #x2.moveNode(400, 500)
+        for node in map:
+            self.addNode(node["text"], [node["position"], 300], node["connections"], id=node["id"])
 
-        #self.setAutoFillBackground(True)
+        for node in self.nodes.values():
+            self.addConnections(node)
 
         self.overlay = OverlayWidget(self)
 
-        self.snapMode = False
+        self.snapMode = True
 
-    def addNode(self, text, position, connection, *data):
+        print(self.nodes)
+
+    def oldGen(self):
+        self.root = self.addNode("1", (200, 300), None)
+
+        for x in range(0,5):
+            connections = []
+            #print(self.nodes)
+            for y in range(0, random.randint(0, len(self.nodes))):
+                connections.append(random.choice(list(self.nodes.keys())))
+            print(connections)
+            self.addNode(str(x), (random.randint(0, 500), random.randint(0, 500)), connections)
+
+
+    def addNode(self, text, position, connections, *data, id=None):
         # Generate a random id
-        newId = random.randint(0, 65535)
-
-        # Check if it is unique, if not, generate a new one and repeat until unique is found
-        idIsUnique = True
-        for node in self.nodes.values():
-            if node.id == newId:
-                idIsUnique = False
-        while idIsUnique is False:
+        if id is None:
             newId = random.randint(0, 65535)
+
+            # Check if it is unique, if not, generate a new one and repeat until unique is found
+            idIsUnique = True
             for node in self.nodes.values():
                 if node.id == newId:
                     idIsUnique = False
+            while idIsUnique is False:
+                newId = random.randint(0, 65535)
+                for node in self.nodes.values():
+                    if node.id == newId:
+                        idIsUnique = False
+
+        else:
+            newId = id
 
         # Instantiate the node and update possible parents or add to roots list
-        connectionList = [connection] if connection is not None else []
+        connectionList = connections if connections is not None else []
         newNode = nodeWidget.QNodeWidget(newId, text, position, connectionList, *data, parent=self)
-        #self.parent.newWidget.addSubWindow(newNode)
-
         self.nodes[newId] = newNode
-        if connection is not None:
-            self.edges.append((newId, connection))
-
         return newNode
+
+    def addConnections(self, node):
+        nodeId = node.id
+        connections = node.connections
+        if connections is not None:
+            for connection in connections:
+                self.edges.append((nodeId, connection))
     
     def paintEvent(self, event):
         qp = QtGui.QPainter()

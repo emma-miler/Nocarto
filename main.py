@@ -4,6 +4,8 @@ from PyQt5 import QtGui, QtWidgets, uic, QtCore
 
 import sys
 import mapper
+import hotkeyDialog
+import fileIO
 
 class MainWindow(QMainWindow):
 
@@ -12,28 +14,56 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
+        # TODO: implement proper translation and scaling
         self.zoomLevel = 100
         self.screenOffset = [0, 0]
 
         self.setMinimumSize(500, 500)
 
 
-        #self.layout = QtWidgets.QVBoxLayout()
-        #self.newWidget = QtWidgets.QMdiArea()
-        self.mapper = mapper.FreeFormMap()
+        map = fileIO.parseFile("test.mm")
+
+        self.mapper = mapper.FreeFormMap(map)
         self.mapper.setMinimumSize(500, 500)
-        #self.newWidget.setLayout(self.layout)
         self.setCentralWidget(self.mapper)
-
-        #self.newWidget.documentMode()
-
-        #self.canvas = QtWidgets.QFrame()
-        #self.newWidget.addSubWindow(self.canvas)
 
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
         self.statusBar.addWidget(QtWidgets.QPushButton())
         self.statusBar.setStyleSheet("background-color: rgb(8,8,8)")
+
+        self.snapAction = QtWidgets.QAction("Toggle Snapping")
+        self.snapButton = QtWidgets.QPushButton("Toggle Snapping")
+        self.snapButton.clicked.connect(self.toggleSnap)
+        self.statusBar.addWidget(self.snapButton)
+
+        self.menuBar = self.menuBar()
+
+        # File menu
+        self.fileMenu = QtWidgets.QMenu("File")
+        self.menuBar.addMenu(self.fileMenu)
+        # Placeholder action
+        self.openAction = QtWidgets.QAction("Test", self)
+        self.fileMenu.addAction(self.openAction)
+
+        # Help menu
+        self.helpMenu = QtWidgets.QMenu("Help")
+        self.menuBar.addMenu(self.helpMenu)
+        # Hotkeys list
+        self.hotkeyAction = QtWidgets.QAction("Hotkeys...", self)
+        self.hotkeyAction.triggered.connect(self.showHotkeyDialog)
+        self.helpMenu.addAction(self.hotkeyAction)
+        self.menuBar.addAction(self.hotkeyAction)
+
+        #self.showHotkeyDialog(None)
+    
+    def toggleSnap(self, event):
+        self.mapper.snapMode = not self.mapper.snapMode
+        self.update()
+
+    def showHotkeyDialog(self, event):
+        dialog = hotkeyDialog.HotkeyDialog([])
+        dialog.exec()
 
     def setupUi(self):
         self.setWindowTitle('Center')
