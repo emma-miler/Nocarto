@@ -53,6 +53,12 @@ def makeNode(parent, inNode, inputType):
     retNode["connections"] = []
     if parent is not None:
         retNode["connections"].append(parent)
+        if inputType == "mindmap":
+            retNode["data"] = {"parent": parent}
+    else:
+        if inputType == "mindmap":
+            retNode["data"] = {"parent": None}
+            
     if "node" in inNode:
         if type(inNode["node"]) == list:
             for node in inNode["node"]:

@@ -4,7 +4,7 @@ from PyQt5 import QtGui, QtWidgets, uic, QtCore
 
 import sys
 import mapper
-import hotkeyDialog
+import shortcutDialog
 import fileIO
 
 class MainWindow(QMainWindow):
@@ -21,21 +21,31 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(500, 500)
 
 
-        map = fileIO.parseFile("example.mm")
+        #map = fileIO.parseFile("test.mm")
 
-        self.mapper = mapper.FreeFormMap(map)
+        #self.mapper = mapper.FreeFormMap(map)
+        self.mapper = mapper.FreeFormMap()
         self.mapper.setMinimumSize(500, 500)
         self.setCentralWidget(self.mapper)
 
+        # Setting up statusbar
         self.statusBar = QtWidgets.QStatusBar()
         self.setStatusBar(self.statusBar)
-        self.statusBar.addWidget(QtWidgets.QPushButton())
         self.statusBar.setStyleSheet("background-color: rgb(8,8,8)")
 
+        # Toggle debug rendering
+        # TODO: make this change render modes
+        self.debugAction = QtWidgets.QAction("Debug Rendering")
+        self.debugBox = QtWidgets.QCheckBox("Debug Rendering")
+        self.debugBox.clicked.connect(lambda event: print(event))
+        self.statusBar.addWidget(self.debugBox)
+
+        # Toggle snapping button
         self.snapAction = QtWidgets.QAction("Toggle Snapping")
-        self.snapButton = QtWidgets.QPushButton("Toggle Snapping")
-        self.snapButton.clicked.connect(self.toggleSnap)
-        self.statusBar.addWidget(self.snapButton)
+        self.snapBox = QtWidgets.QCheckBox("Toggle Snapping")
+        self.snapBox.clicked.connect(lambda event: self.toggleSnap(event))
+        self.statusBar.addWidget(self.snapBox)
+
 
         self.menuBar = self.menuBar()
 
@@ -49,20 +59,36 @@ class MainWindow(QMainWindow):
         # Help menu
         self.helpMenu = QtWidgets.QMenu("Help")
         self.menuBar.addMenu(self.helpMenu)
-        # Hotkeys list
-        self.hotkeyAction = QtWidgets.QAction("Hotkeys...", self)
-        self.hotkeyAction.triggered.connect(self.showHotkeyDialog)
-        self.helpMenu.addAction(self.hotkeyAction)
-        self.menuBar.addAction(self.hotkeyAction)
+        # shortcuts list
+        self.shortcutAction = QtWidgets.QAction("Shortcuts...", self)
+        self.shortcutAction.triggered.connect(self.showShortcutDialog)
+        self.helpMenu.addAction(self.shortcutAction)
+        self.menuBar.addAction(self.shortcutAction)
 
-        #self.showHotkeyDialog(None)
+        self.shortcutList = []
+
+        # Create node
+        self.createNode = QtWidgets.QAction("Create Node", self)
+        self.createNode.setShortcut("Return")
+        self.createNode.triggered.connect(self.mapper.createNewNode)
+        self.addAction(self.createNode)
+        self.shortcutList.append(self.createNode)
+
+        # Edit node
+        self.editNode = QtWidgets.QAction("Edit Node", self)
+        self.editNode.setShortcut("Space")
+        self.editNode.triggered.connect(lambda: self.mapper.setEditNode(True))
+        self.addAction(self.editNode)
+        self.shortcutList.append(self.editNode)
+
+        #self.showShortcutDialog(None)
     
     def toggleSnap(self, event):
-        self.mapper.snapMode = not self.mapper.snapMode
+        self.mapper.snapMode = event
         self.update()
 
-    def showHotkeyDialog(self, event):
-        dialog = hotkeyDialog.HotkeyDialog([])
+    def showShortcutDialog(self, event):
+        dialog = shortcutDialog.ShortcutDialog(self.shortcutList)
         dialog.exec()
 
     def setupUi(self):
