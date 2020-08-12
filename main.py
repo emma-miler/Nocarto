@@ -8,6 +8,13 @@ import shortcutDialog
 import fileIO
 
 # TODO: Make some error handling dialogs
+# TODO: Make nodes seperate objects with text rendering!!!
+# TODO: Add user settings
+# TODO: Editable shortcuts
+# TODO: Make UI more customizable
+# TODO: implement proper translation and scaling
+# TODO: Add grid snapping feature?
+# TODO: Add undo/redo stack (should be fairly simple since operations are atomic)
 
 class MainWindow(QMainWindow):
 
@@ -16,7 +23,6 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        # TODO: implement proper translation and scaling
         self.zoomLevel = 100
         self.screenOffset = [0, 0]
 
