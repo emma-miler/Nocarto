@@ -38,16 +38,10 @@ class MainWindow(QMainWindow):
 
         # Toggle debug rendering
         # TODO: make this change render modes
-        self.debugAction = QtWidgets.QAction("Debug Rendering")
-        self.debugBox = QtWidgets.QCheckBox("Debug Rendering")
-        self.debugBox.clicked.connect(lambda event: print(event))
+        self.debugAction = QtWidgets.QAction("Enable AntiAliasing")
+        self.debugBox = QtWidgets.QCheckBox("Enable AntiAliasing")
+        self.debugBox.clicked.connect(self.setMapperAA)
         self.statusBar.addWidget(self.debugBox)
-
-        # Toggle snapping button
-        self.snapAction = QtWidgets.QAction("Toggle Snapping")
-        self.snapBox = QtWidgets.QCheckBox("Toggle Snapping")
-        self.snapBox.clicked.connect(lambda event: self.toggleSnap(event))
-        self.statusBar.addWidget(self.snapBox)
 
         self.menuBar = self.menuBar()
 
@@ -88,8 +82,23 @@ class MainWindow(QMainWindow):
         self.shortcutAction = QtWidgets.QAction("Shortcuts...", self)
         self.shortcutAction.triggered.connect(self.showShortcutDialog)
         self.helpMenu.addAction(self.shortcutAction)
-        self.menuBar.addAction(self.shortcutAction)    
+        self.menuBar.addAction(self.shortcutAction)
 
+        self.shortcutList = []
+
+        # Create node
+        self.createNode = QtWidgets.QAction("Create Node", self)
+        self.createNode.setShortcut("Return")
+        self.createNode.triggered.connect(self.mapperCreateNode)
+        self.addAction(self.createNode)
+        self.shortcutList.append(self.createNode)
+
+        # Edit node
+        self.editNode = QtWidgets.QAction("Edit Node", self)
+        self.editNode.setShortcut("Space")
+        self.editNode.triggered.connect(self.mapperEditNode)
+        self.addAction(self.editNode)
+        self.shortcutList.append(self.editNode)
 
     def openFile(self):
         options = QtWidgets.QFileDialog.Options()
@@ -125,18 +134,23 @@ class MainWindow(QMainWindow):
             fileIO.saveFile(self.mapper, dialog.selectedFiles()[0])
             self.savedFileName = dialog.selectedFiles()[0]
     
-    
     def deleteMapper(self):
         for node in self.mapper.nodes.values():
             del(node)
         self.mapper.deleteLater()
     
-    def toggleSnap(self, event): # TODO: deprecate this, probably
-        self.mapper.snapMode = event
-        self.update()
+    def mapperCreateNode(self):
+        self.mapper.createNewNode()
+
+    def mapperEditNode(self):
+        self.mapper.setEditNode(True)
+
+    def setMapperAA(self, event): 
+        self.mapper.enableAA = event
+        self.update() # redraw screen
 
     def showShortcutDialog(self, event):
-        dialog = shortcutDialog.ShortcutDialog(self.mapper.shortcutList)
+        dialog = shortcutDialog.ShortcutDialog(self.shortcutList)
         dialog.exec()
 
     def setupUi(self):

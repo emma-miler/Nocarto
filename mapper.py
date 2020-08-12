@@ -38,23 +38,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.edges = [] # List of edges currently being drawn
         self.map = map
 
-        self.shortcutList = []
-
-        self.setStyleSheet("background-color: var(--test)")
-
-        # Create node
-        self.createNode = QtWidgets.QAction("Create Node", self)
-        self.createNode.setShortcut("Return")
-        self.createNode.triggered.connect(self.createNewNode)
-        self.addAction(self.createNode)
-        self.shortcutList.append(self.createNode)
-
-        # Edit node
-        self.editNode = QtWidgets.QAction("Edit Node", self)
-        self.editNode.setShortcut("Space")
-        self.editNode.triggered.connect(lambda: self.setEditNode(True))
-        self.addAction(self.editNode)
-        self.shortcutList.append(self.editNode)
+        self.enableAA = False
 
         self.selected = None # Holds selected node
 
@@ -140,7 +124,7 @@ class FreeFormMap(QtWidgets.QWidget):
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
-        qp.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 5))
         self.drawMap(event, qp)
         if self.tempLine is not None:
@@ -159,18 +143,6 @@ class FreeFormMap(QtWidgets.QWidget):
 
             horPos = 0.5
             vertPos = 0.5
-
-            if self.snapMode:
-
-                if e1[0] <= e2[0] - n1.width():
-                    horPos = 1
-                elif e1[0] >= e2[0] + n1.width():
-                    horPos = 0            
-
-                if e1[1] <= e2[1] - n1.height():
-                    vertPos = 1
-                elif e1[1] >= e2[1] + n1.height():
-                    vertPos = 0
             
             qp.drawLine(e1[0] + n1.width() * horPos, e1[1] + n1.height() * vertPos, e2[0] + n2.width() * (1-horPos), e2[1] + n2.height() * (1-vertPos))
 

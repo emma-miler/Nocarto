@@ -47,12 +47,12 @@ class QNodeWidget(QtWidgets.QWidget):
         self.isSelected = False
         
         self.label = QtWidgets.QLabel(self.text)
-        self.label.setStyleSheet("background-color: gray")
+        self.label.setStyleSheet("background-color: gray; color: black")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
         self.textEdit = QtWidgets.QLineEdit(self.text)
-        self.textEdit.setStyleSheet("background-color: gray")
+        self.textEdit.setStyleSheet("background-color: gray; color: black")
         self.textEdit.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.textEdit)
         self.textEdit.hide()
