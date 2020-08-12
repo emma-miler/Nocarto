@@ -7,6 +7,8 @@ import mapper
 import shortcutDialog
 import fileIO
 
+# TODO: Make some error handling dialogs
+
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
@@ -20,6 +22,7 @@ class MainWindow(QMainWindow):
 
         self.setMinimumSize(500, 500)
 
+        self.savedFileName = None
 
         #map = fileIO.parseFile("test.mm")
 
@@ -46,15 +49,37 @@ class MainWindow(QMainWindow):
         self.snapBox.clicked.connect(lambda event: self.toggleSnap(event))
         self.statusBar.addWidget(self.snapBox)
 
-
         self.menuBar = self.menuBar()
 
         # File menu
         self.fileMenu = QtWidgets.QMenu("File")
         self.menuBar.addMenu(self.fileMenu)
-        # Placeholder action
-        self.openAction = QtWidgets.QAction("Test", self)
+        # Open action
+        self.openAction = QtWidgets.QAction("Open", self)
+        self.openAction.setShortcut("Ctrl+O")
+        self.openAction.triggered.connect(self.openFile)
         self.fileMenu.addAction(self.openAction)
+
+        self.fileMenu.addSeparator()
+
+        # Save action
+        self.saveAction = QtWidgets.QAction("Save", self)
+        self.saveAction.setShortcut("Ctrl+S")
+        self.saveAction.triggered.connect(self.saveFile)
+        self.fileMenu.addAction(self.saveAction)
+        # Save as action
+        self.saveAsAction = QtWidgets.QAction("Save as...", self)
+        self.saveAsAction.setShortcut("Ctrl+Shift+S")
+        self.saveAsAction.triggered.connect(self.saveAsFile)
+        self.fileMenu.addAction(self.saveAsAction)
+        
+        self.fileMenu.addSeparator()
+
+        # Import action
+        self.importAction = QtWidgets.QAction("Import...", self)
+        self.importAction.setShortcut("Ctrl+Shift+I")
+        self.importAction.triggered.connect(self.importFile)
+        self.fileMenu.addAction(self.importAction)
 
         # Help menu
         self.helpMenu = QtWidgets.QMenu("Help")
@@ -63,41 +88,60 @@ class MainWindow(QMainWindow):
         self.shortcutAction = QtWidgets.QAction("Shortcuts...", self)
         self.shortcutAction.triggered.connect(self.showShortcutDialog)
         self.helpMenu.addAction(self.shortcutAction)
-        self.menuBar.addAction(self.shortcutAction)
+        self.menuBar.addAction(self.shortcutAction)    
 
-        self.shortcutList = []
 
-        # Create node
-        self.createNode = QtWidgets.QAction("Create Node", self)
-        self.createNode.setShortcut("Return")
-        self.createNode.triggered.connect(self.mapper.createNewNode)
-        self.addAction(self.createNode)
-        self.shortcutList.append(self.createNode)
-
-        # Edit node
-        self.editNode = QtWidgets.QAction("Edit Node", self)
-        self.editNode.setShortcut("Space")
-        self.editNode.triggered.connect(lambda: self.mapper.setEditNode(True))
-        self.addAction(self.editNode)
-        self.shortcutList.append(self.editNode)
-
-        #self.showShortcutDialog(None)
+    def openFile(self):
+        options = QtWidgets.QFileDialog.Options()
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","NoCarto Map Files (*.ncm)", options=options)
+        if fileName:
+            map = fileIO.openFile(fileName) # Generate a nodelist from the file
+            self.deleteMapper() # Remove the current map widget
+            self.mapper = mapper.FreeFormMap(map, "freemap") # Create a new map widget and set it as the central widget
+            self.setCentralWidget(self.mapper)
+            self.savedFileName = fileName # update the filename used when saving
     
-    def toggleSnap(self, event):
+    def importFile(self):
+        options = QtWidgets.QFileDialog.Options()
+        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;FreeMind Files (*.mm)", options=options)
+        if fileName:
+            map = fileIO.parseFile(fileName) # Generate a nodelist from the file
+            self.deleteMapper() # Remove the current map widget
+            self.mapper = mapper.FreeFormMap(map, "mindmap") # Create a new map widget and set it as the central widget
+            self.setCentralWidget(self.mapper)
+
+    def saveFile(self):
+        if self.savedFileName is None: # Check if we already have a known file we can write to, otherwise, open save as dialog
+            self.saveAsFile()
+        else:
+            fileIO.saveFile(self.mapper, self.savedFileName)
+    
+    def saveAsFile(self):
+        dialog = QtWidgets.QFileDialog()
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dialog.setDefaultSuffix("ncm")
+        dialog.setNameFilter("NoCarto Map (*.ncm)")
+        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            fileIO.saveFile(self.mapper, dialog.selectedFiles()[0])
+            self.savedFileName = dialog.selectedFiles()[0]
+    
+    
+    def deleteMapper(self):
+        for node in self.mapper.nodes.values():
+            del(node)
+        self.mapper.deleteLater()
+    
+    def toggleSnap(self, event): # TODO: deprecate this, probably
         self.mapper.snapMode = event
         self.update()
 
     def showShortcutDialog(self, event):
-        dialog = shortcutDialog.ShortcutDialog(self.shortcutList)
+        dialog = shortcutDialog.ShortcutDialog(self.mapper.shortcutList)
         dialog.exec()
 
     def setupUi(self):
-        self.setWindowTitle('Center')
+        self.setWindowTitle('NoCarto')
         self.showMaximized()
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            pass
 
 def main():
     qapp = QApplication(sys.argv)

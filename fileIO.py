@@ -4,6 +4,8 @@ import json
 from itertools import chain
 import re
 
+# Warning: this function is likely to fail on bad data.
+# This is currently unsafe and *will* crash the program
 def parseFile(inFile):
     if inFile[-3:] == ".mm":
         with open(inFile) as fd:
@@ -13,15 +15,10 @@ def parseFile(inFile):
 
             main = doc["map"]["node"]
 
-            test = makeNode(None, main, "mindmap")
-
-            pprint.pprint(test)
-            print("\n\n\n")
+            test = makeMindMapNode(None, main, "mindmap")
 
             globals()["nodeList"] = []
             x = untangleTree(test)
-            pprint.pprint(globals()["nodeList"])
-            print("\n\n\n")
 
             return globals()["nodeList"]
 
@@ -30,7 +27,7 @@ def parseFile(inFile):
     else:
         raise BaseException("Not yet implemented")
 
-def makeNode(parent, inNode, inputType):
+def makeMindMapNode(parent, inNode, inputType):
     retNode = {}
     try:
         retNode["id"] = int(re.sub("[^0-9]", "", inNode["@ID"]))
@@ -41,23 +38,17 @@ def makeNode(parent, inNode, inputType):
     else:
         # TODO: parse rich context, like, at all
         retNode["text"] = "UNPARSED STRING"
-    if inputType == "mindmap":
-        if "@POSITION" not in inNode:
-            retNode["position"] = 0
-        else:
-            retNode["position"] = -1 if inNode["@POSITION"] == "left" else 1
+    if "@POSITION" not in inNode:
+        retNode["position"] = 0
     else:
-        pass
-        # TODO: implement positioning for freemaps
+        retNode["position"] = -1 if inNode["@POSITION"] == "left" else 1
     children = []
     retNode["connections"] = []
     if parent is not None:
         retNode["connections"].append(parent)
-        if inputType == "mindmap":
-            retNode["data"] = {"parent": parent}
+        retNode["data"] = {"parent": parent}
     else:
-        if inputType == "mindmap":
-            retNode["data"] = {"parent": None}
+        retNode["data"] = {"parent": None}
             
     if "node" in inNode:
         if type(inNode["node"]) == list:
@@ -81,6 +72,8 @@ def makeNode(parent, inNode, inputType):
     else:
         return retNode
 
+# This function takes the parsed data from makeMindMapNode() and returns a list of usable nodes to globals()["nodeList"]
+# I am aware that this is bad practice, and this needs to be tidied up.
 def untangleTree(node):
     if type(node) == list:
         for subNode in node:
@@ -88,3 +81,30 @@ def untangleTree(node):
     elif type(node) == dict:
         globals()["nodeList"].append(node)
         return
+
+
+# Save a map object into a file
+def saveFile(mapperObject, fileName):
+    output = {}
+    output["version"] = "0.0.1" # Version numbers currently unused
+    nodes = []
+    for node in mapperObject.nodes.values():
+        savedNode = {
+            "id": node.id,
+            "text": node.text,
+            "position": node.position,
+            "connections": node.connections,
+            "data": node.data # TODO: cull unnecessary MindMap data
+        }
+        nodes.append(savedNode)
+    output["nodes"] = nodes
+    with open(fileName, "w") as outputFile:
+        outputFile.write(json.dumps(output))
+
+# Simply opens the filename and loads the json data into a dictionary
+# As with parseFile, this is currently unsafe
+def openFile(fileName):
+    data = {}
+    with open(fileName, "r") as inputFile:
+        data = json.load(inputFile)
+    return data["nodes"]

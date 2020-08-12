@@ -3,8 +3,6 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 import nodeWidget
 
-# TODO: FIX MINDMAP IMPORTING 
-
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -33,41 +31,60 @@ class OverlayWidget(QtWidgets.QWidget):
         qp.end()
 
 class FreeFormMap(QtWidgets.QWidget):
-    def __init__(self, map=None, parent=None):
+    def __init__(self, map=None, mapType=None, parent=None):
         super().__init__(parent=parent)
         self.parent = parent
-        self.nodes = {}
-        self.edges = []
+        self.nodes = {} # List of all nodes, with their id as the key
+        self.edges = [] # List of edges currently being drawn
         self.map = map
 
-        self.selected = None
+        self.shortcutList = []
 
-        self.cachedTreeBounds = [[0, 0], [0, 0]]
+        self.setStyleSheet("background-color: var(--test)")
 
-        self.setMinimumSize(1000, 1000)
+        # Create node
+        self.createNode = QtWidgets.QAction("Create Node", self)
+        self.createNode.setShortcut("Return")
+        self.createNode.triggered.connect(self.createNewNode)
+        self.addAction(self.createNode)
+        self.shortcutList.append(self.createNode)
 
-        self.root = None
+        # Edit node
+        self.editNode = QtWidgets.QAction("Edit Node", self)
+        self.editNode.setShortcut("Space")
+        self.editNode.triggered.connect(lambda: self.setEditNode(True))
+        self.addAction(self.editNode)
+        self.shortcutList.append(self.editNode)
 
-        if map is not None:
+        self.selected = None # Holds selected node
 
-            for node in map:
-                # TODO: implement positioning for mindmaps
-                pos = [300, 300]
-                if node["data"]["parent"] is None:
-                    pos = [int(self.width()/2), int(self.height()/2)]
-                x = self.addNode(node["text"], pos, node["connections"], data=node["data"], id=node["id"])
-                if node["data"]["parent"] is None:
-                    self.root = x
+        self.root = None # Holds root node in a mindmap
+
+        if mapType == "mindmap":
+            if map is not None:
+                for node in map:
+                    # TODO: implement positioning for mindmaps
+                    pos = [300, 300]
+                    if node["data"]["parent"] is None:
+                        pos = [int(self.width()/2), int(self.height()/2)]
+                    x = self.addNode(node["text"], pos, node["connections"], data=node["data"], id=node["id"])
+                    if node["data"]["parent"] is None:
+                        self.root = x
+        elif mapType == "freemap":
+            if map is not None:
+                for node in map:
+                    self.addNode(node["text"], node["position"], node["connections"], data=node["data"], id=node["id"])
 
         for node in self.nodes.values():
             self.addConnections(node)
 
-        self.overlay = OverlayWidget(self)
+        #self.overlay = OverlayWidget(self)
 
-        self.root = self.addNode("test", [300, 300], None)
+        if map is None:
+            self.root = self.addNode("test", [300, 300], None)
 
         self.tempLine = None
-        self.snapMode = True
+        self.snapMode = False
 
     
     def updateSelection(self, newSelection):
@@ -77,17 +94,6 @@ class FreeFormMap(QtWidgets.QWidget):
             newSelection.setSelected(True)
 
         self.selected = newSelection
-
-    def oldGen(self):
-        self.root = self.addNode("1", (200, 300), None)
-
-        for x in range(0,5):
-            connections = []
-            #print(self.nodes)
-            for y in range(0, random.randint(0, len(self.nodes))):
-                connections.append(random.choice(list(self.nodes.keys())))
-            print(connections)
-            self.addNode(str(x), (random.randint(0, 500), random.randint(0, 500)), connections)
 
 
     def addNode(self, text, position, connections, data=None, id=None):
