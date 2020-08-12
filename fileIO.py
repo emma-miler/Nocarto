@@ -53,14 +53,14 @@ def makeMindMapNode(parent, inNode, inputType):
     if "node" in inNode:
         if type(inNode["node"]) == list:
             for node in inNode["node"]:
-                x = makeNode(retNode["id"], node, inputType)
+                x = makeMindMapNode(retNode["id"], node, inputType)
                 children.append(x)
                 if type(x) == list:
                     retNode["connections"].append(x[-1]["id"])
                 else:
                     retNode["connections"].append(x["id"])
         else:
-            x = makeNode(retNode["id"], inNode["node"], inputType)
+            x = makeMindMapNode(retNode["id"], inNode["node"], inputType)
             children.append(x)
             if type(x) == list:
                 retNode["connections"].append(x[-1]["id"])
