@@ -2,6 +2,7 @@ import random
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import nodeWidget
+import stateMachine
 
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -51,13 +52,13 @@ class FreeFormMap(QtWidgets.QWidget):
                     pos = [300, 300]
                     if node["data"]["parent"] is None:
                         pos = [int(self.width()/2), int(self.height()/2)]
-                    x = self.addNode(node["text"], pos, node["connections"], data=node["data"], id=node["id"])
+                    x = self.addNode(node["name"], pos, node["connections"], data=node["data"], id=node["id"])
                     if node["data"]["parent"] is None:
                         self.root = x
         elif mapType == "freemap":
             if map is not None:
                 for node in map:
-                    self.addNode(node["text"], node["position"], node["connections"], data=node["data"], id=node["id"])
+                    self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"])
 
         for node in self.nodes.values():
             self.addConnections(node)
@@ -70,6 +71,9 @@ class FreeFormMap(QtWidgets.QWidget):
         self.tempLine = None
         self.snapMode = False
 
+        # Set up state machine
+        self.stateMachine = stateMachine.StateMachine()
+
     
     def updateSelection(self, newSelection):
         if self.selected is not None:
@@ -80,7 +84,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.selected = newSelection
 
 
-    def addNode(self, text, position, connections, data=None, id=None):
+    def addNode(self, name, position, connections, data=None, id=None):
         # Generate a random id
         if id is None:
             newId = random.randint(0, 65535)
@@ -101,7 +105,7 @@ class FreeFormMap(QtWidgets.QWidget):
 
         # Instantiate the node and update possible parents or add to roots list
         connectionList = connections if connections is not None else []
-        newNode = nodeWidget.QNodeWidget(newId, text, position, connectionList, data, parent=self)
+        newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
         self.addConnections(newNode)
         return newNode
@@ -172,3 +176,12 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.selected.textEdit.hide()
             self.selected.update()
             self.update()
+    
+    def undo(self):
+        atom = self.stateMachine.undo()
+        if atom is not None:
+            print(atom)
+            if atom["type"] == "editNode":
+                atom["node"].applyChange(atom["old"])
+            else:
+                raise NotImplementedError("Atom type not yet implemented")

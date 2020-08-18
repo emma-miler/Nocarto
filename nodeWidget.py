@@ -1,7 +1,9 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
+import nodeDetailDialog
+
 class QNodeWidget(QtWidgets.QWidget):
-    def __init__(self, id: int, text: str, position: tuple or list, connections=None, data=None, parent=None):
+    def __init__(self, id: int, name: str, position: tuple or list, connections=None, data=None, parent=None):
         super().__init__(parent=parent)
 
         #self.setMinimumSize(100,100)
@@ -9,11 +11,11 @@ class QNodeWidget(QtWidgets.QWidget):
         self.parent = parent
 
         assert(type(id) == int)
-        assert(type(text) == str)
+        assert(type(name) == str)
         assert(type(position) == tuple or list)
         assert(type(connections) == list or tuple or connections is None)
         self.id = id
-        self.text = text
+        self.name = name
         self.position = position
         self.connections = connections
         self.data = data
@@ -38,22 +40,27 @@ class QNodeWidget(QtWidgets.QWidget):
         """
 
         self.styleUnselected = """
-            background-color: gray;
+            background-color: transparent;
             border-radius: 20px
         """
 
         self.mainWidget.setStyleSheet(self.styleUnselected)
 
         self.isSelected = False
+
+        self.color = "gray"
+        if "color" in self.data:
+            self.color = self.data["color"]
         
-        self.label = QtWidgets.QLabel(self.text)
-        self.label.setStyleSheet("background-color: gray; color: black")
+        self.label = QtWidgets.QLabel(self.name)
+        self.label.setStyleSheet(f"background-color: {self.color}; color: black")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
-        self.textEdit = QtWidgets.QLineEdit(self.text)
-        self.textEdit.setStyleSheet("background-color: gray; color: black")
+        self.textEdit = QtWidgets.QLineEdit(self.name)
+        self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
         self.textEdit.setAlignment(QtCore.Qt.AlignCenter)
+        self.textEdit.editingFinished.connect(self.updateName)
         self.layout.addWidget(self.textEdit)
         self.textEdit.hide()
 
@@ -79,11 +86,13 @@ class QNodeWidget(QtWidgets.QWidget):
         self.__mousePressPos = None
         self.__mouseMovePos = None
         self.dragRight = False
+        self.dragLeft = False
         self.freeDrag = False
         if event.button() == QtCore.Qt.LeftButton:
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
             self.startPos = event.globalPos()
+            self.startMapperPos = self.position
             self.parent.updateSelection(self)
         if event.button() == QtCore.Qt.RightButton:
             self.startPos = event.globalPos()
@@ -97,6 +106,7 @@ class QNodeWidget(QtWidgets.QWidget):
             currPos = self.mapToGlobal(self.pos())
             globalPos = event.globalPos()
             if (globalPos - self.startPos).manhattanLength() > 30 or self.freeDrag:
+                self.dragLeft = True
                 self.freeDrag = True
                 diff = globalPos - self.__mouseMovePos
                 newPos = self.mapFromGlobal(currPos + diff)
@@ -126,6 +136,11 @@ class QNodeWidget(QtWidgets.QWidget):
             if found is not None:
                 self.parent.addConnection(self, found)
 
+        elif self.dragLeft:
+            deltaOld = {"position": self.startMapperPos}
+            deltaNew = {"position": self.position}
+            self.parent.stateMachine.pushChange(self, deltaOld, deltaNew, "editNode", origin="nodeWidget.py:mouseReleaseEvent")
+
         if self.__mousePressPos is not None:
             moved = event.globalPos() - self.__mousePressPos 
             if moved.manhattanLength() > 3:
@@ -134,11 +149,44 @@ class QNodeWidget(QtWidgets.QWidget):
 
         #super(DragButton, self).mouseReleaseEvent(event)
 
+    def mouseDoubleClickEvent(self, event):
+        if event.buttons() == QtCore.Qt.LeftButton:
+            dialog = nodeDetailDialog.QNodeDetailDialog(self)
+            dialog.exec()
+            if dialog.apply:
+                self.parent.stateMachine.pushChange(self, dialog.nodeDeltaOld, dialog.nodeDeltaNew, "editNode", origin="nodeWidget.py:mouseDoubleClickEvent")
+                self.applyChange(dialog.nodeDeltaNew)
+
+    def applyChange(self, delta):
+        if "name" in delta:
+            self.name = delta["name"]
+            self.label.setText(self.name)
+            self.textEdit.setText(self.name)
+        if "position" in delta:
+            self.moveNode(delta["position"][0], delta["position"][1])
+        if "data" in delta:
+            newData = delta["data"]
+            for item in newData.keys():
+                self.data[item] = newData[item]
+                if item == "color":
+                    print("test")
+                    print(newData[item])
+                    self.color = newData["color"] if newData["color"] is not None else "gray"
+                    self.label.setStyleSheet(f"background-color: {self.color}; color: black")
+                    self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
+
+    def updateName(self):
+        event = self.textEdit.text()
+        self.parent.stateMachine.pushChange(self, {"name": self.name}, {"name": event}, "editNode", origin="nodeWidget.py:updateName")
+        self.name = event
+        self.label.setText(event)
+
     # Moves the node to a new location and updates
     def moveNode(self, x, y):
         self.move(x, y)
         self.position = [x,y]
         self.center = QtCore.QPoint(self.position[0] + self.width()/2, self.position[1] + self.height()/2)
+
         self.update()
 
     # Currently unused draw function

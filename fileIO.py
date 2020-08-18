@@ -34,10 +34,10 @@ def makeMindMapNode(parent, inNode, inputType):
     except:
         retNode["id"] = 0
     if "@TEXT" in inNode:
-        retNode["text"] = inNode["@TEXT"]
+        retNode["name"] = inNode["@TEXT"]
     else:
         # TODO: parse rich context, like, at all
-        retNode["text"] = "UNPARSED STRING"
+        retNode["name"] = "UNPARSED STRING"
     if "@POSITION" not in inNode:
         retNode["position"] = 0
     else:
@@ -91,7 +91,7 @@ def saveFile(mapperObject, fileName):
     for node in mapperObject.nodes.values():
         savedNode = {
             "id": node.id,
-            "text": node.text,
+            "name": node.name,
             "position": node.position,
             "connections": node.connections,
             "data": node.data # TODO: cull unnecessary MindMap data

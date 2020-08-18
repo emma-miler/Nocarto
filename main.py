@@ -8,13 +8,13 @@ import shortcutDialog
 import fileIO
 
 # TODO: Make some error handling dialogs
-# TODO: Make nodes seperate objects with text rendering!!!
+# TODO: Make edges seperate objects with text rendering!!!
 # TODO: Add user settings
 # TODO: Editable shortcuts
 # TODO: Make UI more customizable
 # TODO: implement proper translation and scaling
 # TODO: Add grid snapping feature?
-# TODO: Add undo/redo stack (should be fairly simple since operations are atomic)
+# TODO: Add undo/redo stack (foundations built, will work with delta system)
 
 class MainWindow(QMainWindow):
 
@@ -33,7 +33,7 @@ class MainWindow(QMainWindow):
         #map = fileIO.parseFile("test.mm")
 
         #self.mapper = mapper.FreeFormMap(map)
-        self.mapper = mapper.FreeFormMap()
+        self.mapper = mapper.FreeFormMap(parent=self)
         self.mapper.setMinimumSize(500, 500)
         self.setCentralWidget(self.mapper)
 
@@ -80,6 +80,24 @@ class MainWindow(QMainWindow):
         self.importAction.setShortcut("Ctrl+Shift+I")
         self.importAction.triggered.connect(self.importFile)
         self.fileMenu.addAction(self.importAction)
+
+
+        # Edit menu
+        self.fileMenu = QtWidgets.QMenu("Edit")
+        self.menuBar.addMenu(self.fileMenu)
+
+        # Undo action
+        self.undoAction = QtWidgets.QAction("Undo", self)
+        self.undoAction.setShortcut("Ctrl+Z")
+        self.undoAction.triggered.connect(self.undo)
+        self.fileMenu.addAction(self.undoAction)
+
+        # Redo action
+        self.redoAction = QtWidgets.QAction("Redo", self)
+        self.redoAction.setShortcut("Ctrl+Y")
+        self.redoAction.triggered.connect(self.redo)
+        self.fileMenu.addAction(self.redoAction)
+
 
         # Help menu
         self.helpMenu = QtWidgets.QMenu("Help")
@@ -158,6 +176,12 @@ class MainWindow(QMainWindow):
     def showShortcutDialog(self, event):
         dialog = shortcutDialog.ShortcutDialog(self.shortcutList)
         dialog.exec()
+
+    def undo(self):
+        self.mapper.undo()
+
+    def redo(self):
+        pass
 
     def setupUi(self):
         self.setWindowTitle('NoCarto')

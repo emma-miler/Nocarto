@@ -1,8 +1,8 @@
-## NoCarto
+## Nocarto
 
-NoCarto is a desktop mind mapping application where the user is in control of the map. Unlike traditional mind mapping software, NoCarto treats all nodes as equal, allowing for arbitrary connections between any two nodes. 
+Nocarto is a desktop mind mapping application where the user is in control of the map. Unlike traditional mind mapping software, Nocarto treats all nodes as equal, allowing for arbitrary connections between any two nodes. 
 
-NoCarto is written in Python using the PyQt framework.
+Nocarto is written in Python using the PyQt framework.
 
 ## Features
 
@@ -20,7 +20,7 @@ NoCarto is written in Python using the PyQt framework.
 
 ## License
 
-NoCarto's source code is licensed under GNU GPLv3. 
+Nocarto's source code is licensed under GNU GPLv3. 
 See COPYING for the complete license text.
 
 All image files, except where otherwise noted, are licensed under
@@ -28,14 +28,14 @@ CC BY-SA 3.0: http://creativecommons.org/licenses/by-sa/3.0/
 
 ## Installation
 
-NoCarto currently does not have any binary builds. 
+Nocarto currently does not have any binary builds. 
 To get started, clone the repository:
 
 `git clone  https://github.com/NoaMiler/Nocarto.git`
 
 from there, enter the newly created directory and install the required packages:
 
-`cd NoCarto`
+`cd Nocarto`
 
 `pip install -r requirements.txt`
 
