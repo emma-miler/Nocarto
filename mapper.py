@@ -3,6 +3,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 
 import nodeWidget
 import stateMachine
+import fileIO
 
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -45,6 +46,9 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.root = None # Holds root node in a mindmap
 
+        # Set up state machine
+        self.stateMachine = stateMachine.StateMachine(parent=self)
+
         if mapType == "mindmap":
             if map is not None:
                 for node in map:
@@ -71,9 +75,6 @@ class FreeFormMap(QtWidgets.QWidget):
         self.tempLine = None
         self.snapMode = False
 
-        # Set up state machine
-        self.stateMachine = stateMachine.StateMachine()
-
     
     def updateSelection(self, newSelection):
         if self.selected is not None:
@@ -84,7 +85,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.selected = newSelection
 
 
-    def addNode(self, name, position, connections, data=None, id=None):
+    def addNode(self, name, position, connections, data=None, id=None, push=True):
         # Generate a random id
         if id is None:
             newId = random.randint(0, 65535)
@@ -108,6 +109,10 @@ class FreeFormMap(QtWidgets.QWidget):
         newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
         self.addConnections(newNode)
+
+        if push:
+            self.stateMachine.addNode(newNode, "mapper.py:addNode")
+
         return newNode
 
     def addConnections(self, node):
@@ -115,10 +120,9 @@ class FreeFormMap(QtWidgets.QWidget):
         connections = node.connections
         if connections is not None:
             for connection in connections:
-                self.edges.append((nodeId, connection))
-        
-        #if node.data["parent"] is not None:
-        #    self.nodes[node.data["parent"]].connections.append(nodeId)
+                if connection in self.nodes:
+                    self.edges.append((nodeId, connection))
+
 
     def addConnection(self, node1, node2):
         node1.connections.append(node2.id)
@@ -133,6 +137,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.drawMap(event, qp)
         if self.tempLine is not None:
             qp.drawLine(self.tempLine[0], self.tempLine[1])
+        qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
         qp.end()
 
     def drawMap(self, event, qp):
@@ -160,7 +165,9 @@ class FreeFormMap(QtWidgets.QWidget):
     def createNewNode(self):
         connection = [] if self.selected is None else [self.selected.id]
         pos = [300, 300] if self.selected is None else [self.selected.position[0], self.selected.position[1] + 150]
-        self.addNode("", pos, connection)
+        node = self.addNode("", pos, connection)
+        if connection is not None:
+            self.addConnection(self.nodes[connection[0]], node)
 
     def setEditNode(self, edit):
         if self.selected is not None:
@@ -176,12 +183,46 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.selected.textEdit.hide()
             self.selected.update()
             self.update()
+
+    def deleteNode(self, node):
+        self.edges = list(filter(lambda x: x[0] != node.id and x[1] != node.id, self.edges))  
+        self.nodes.pop(node.id)
+        node.setParent(None)
+        node.deleteLater()
+        self.updateSelection(None)
+        self.update()
     
+    def deleteCurrentNode(self):
+        if self.selected is not None:
+            connections = []
+            for node in self.nodes.values():
+                if node is not self.selected:
+                    if self.selected.id in node.connections:
+                        connections.append(node.id)
+            self.selected.connections = connections
+            # When deleting a node, we save its serialized data to the state machine so we can rebuild it later
+            self.stateMachine.deleteNode(fileIO.serializeNode(self.selected))
+            self.deleteNode(self.selected)
+
+    def rebuildNode(self, data):
+        self.addNode(data["name"], data["position"], data["connections"], data=data["data"], id=data["id"], push=False)
+        self.update()
+
     def undo(self):
         atom = self.stateMachine.undo()
         if atom is not None:
             print(atom)
             if atom["type"] == "editNode":
                 atom["node"].applyChange(atom["old"])
+            elif atom["type"] == "addNode":
+                self.deleteNode(atom["node"])
+            elif atom["type"] == "deleteNode":
+                self.rebuildNode(atom["data"])
+            elif atom["type"] == "editEdge":
+                atom["edge"].applyChange(atom["old"])
+            elif atom["type"] == "addEdge":
+                self.deleteEdge(atom["old"])
+            elif atom["type"] == "deleteEdge":
+                self.rebuildEdge(atom["old"])
             else:
                 raise NotImplementedError("Atom type not yet implemented")

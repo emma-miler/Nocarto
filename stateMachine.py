@@ -3,10 +3,10 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 # TODO: add support for operations involving multiple nodes, e.g: mass delete
 
 # Action types:
-# addNode       (node)                          new node created
-# deleteNode    (node)                          node deleted
+# addNode       (node, data)                    new node created
+# deleteNode    (data)                          node deleted
 # editNode      (node, oldData, newData)        node's data edited
-# addEdge       (edge, node1, node2)            create edge
+# addEdge       (edge)                          create edge
 # editEdge      (edge, oldData, newData)        edge's data edited
 # deleteEdge    (edge)                          edge deleted 
 
@@ -17,21 +17,71 @@ class StateMachine():
         self.stateList = []
         self.doOffset = 0 # Holds the current index for undo/redo operations
 
-    def pushChange(self, node, deltaOld, deltaNew, actionType, origin=None):
-        #if deltaOld == deltaNew:
-        #    return
-        # TODO: implement overwriting redo when in the past
+    def addNode(self, node, data, origin=None):
+        self.stateList.append({
+            "node": node,
+            "data": data,
+            "type": "addNode",
+            "origin": str(origin)
+        })
+        self.updateList()
+    
+    def deleteNode(self, data, origin=None):
+        self.stateList.append({
+            "data": data,
+            "type": "deleteNode",
+            "origin": str(origin)
+        })
+        self.updateList()
+
+    def editNode(self, node, deltaOld, deltaNew, origin=None):
         if self.doOffset < len(self.stateList):
             self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append( {
+        self.stateList.append({
             "node": node, 
             "old": deltaOld,
             "new": deltaNew,
-            "type": actionType,
-            "origin": origin,
+            "type": "editNode",
+            "origin": str(origin),
         })
-        self.doOffset += 1
+        self.updateList()
     
+    def addEdge(self, edge, origin=None):
+        self.stateList.append({
+            "node": node,
+            "type": "addEdge",
+            "origin": str(origin)
+        })
+        self.updateList()
+
+    def deleteEdge(self, edge, origin=None):
+        self.stateList.append({
+            "node": node,
+            "type": "deleteEdge",
+            "origin": str(origin)
+        })
+        self.updateList()
+
+    def editEdge(self, edge, deltaOld, deltaNew, origin=None):
+        if self.doOffset < len(self.stateList):
+            self.stateList = self.stateList[:self.doOffset]
+        self.stateList.append({
+            "edge": node, 
+            "old": deltaOld,
+            "new": deltaNew,
+            "type": "editEdge",
+            "origin": str(origin),
+        })
+        self.updateList()
+
+    def updateList(self):
+        self.doOffset += 1
+        #model = self.parent.parent.listView.model()
+        #model.removeRows(0, model.rowCount())
+        #for state in self.stateList:
+        #    item = QtGui.QStandardItem(str(state))
+        #    model.appendRow(item)
+
     def undo(self):
         if self.doOffset > 0:
             self.doOffset -= 1

@@ -7,6 +7,8 @@ import mapper
 import shortcutDialog
 import fileIO
 
+# TODO: MAKE EDGES SYMMETRICAL!
+
 # TODO: Make some error handling dialogs
 # TODO: Make edges seperate objects with text rendering!!!
 # TODO: Add user settings
@@ -32,13 +34,30 @@ class MainWindow(QMainWindow):
 
         #map = fileIO.parseFile("test.mm")
 
+        self.newWidget = QtWidgets.QWidget()
+        self.layout = QtWidgets.QHBoxLayout()
+        self.newWidget.setLayout(self.layout)
+
+        self.model = QtGui.QStandardItemModel()
+        item = QtGui.QStandardItem("Item")
+        item.setFlags(QtCore.Qt.ItemIsEnabled)
+        self.model.appendRow(item)
+        
+        self.listView = QtWidgets.QListView()
+        self.listView.setMaximumSize(800, 1000)
+        self.listView.setModel(self.model)
+
         #self.mapper = mapper.FreeFormMap(map)
         self.mapper = mapper.FreeFormMap(parent=self)
         self.mapper.setMinimumSize(500, 500)
-        self.setCentralWidget(self.mapper)
+
+        self.layout.addWidget(self.mapper)
+        #self.layout.addWidget(self.listView)
+
+        self.setCentralWidget(self.newWidget)
 
         # Setting up statusbar
-        self.statusBar = QtWidgets.QStatusBar()
+        self.statusBar = QtWidgets.QStatusBar(parent=self)
         self.setStatusBar(self.statusBar)
         self.statusBar.setStyleSheet("background-color: rgb(8,8,8)")
 
@@ -83,20 +102,20 @@ class MainWindow(QMainWindow):
 
 
         # Edit menu
-        self.fileMenu = QtWidgets.QMenu("Edit")
-        self.menuBar.addMenu(self.fileMenu)
+        self.editMenu = QtWidgets.QMenu("Edit")
+        self.menuBar.addMenu(self.editMenu)
 
         # Undo action
         self.undoAction = QtWidgets.QAction("Undo", self)
         self.undoAction.setShortcut("Ctrl+Z")
         self.undoAction.triggered.connect(self.undo)
-        self.fileMenu.addAction(self.undoAction)
+        self.editMenu.addAction(self.undoAction)
 
         # Redo action
         self.redoAction = QtWidgets.QAction("Redo", self)
         self.redoAction.setShortcut("Ctrl+Y")
         self.redoAction.triggered.connect(self.redo)
-        self.fileMenu.addAction(self.redoAction)
+        self.editMenu.addAction(self.redoAction)
 
 
         # Help menu
@@ -109,6 +128,8 @@ class MainWindow(QMainWindow):
         self.menuBar.addAction(self.shortcutAction)
 
         self.shortcutList = []
+
+        # TODO: add some of these to the edit menu
 
         # Create node
         self.createNode = QtWidgets.QAction("Create Node", self)
@@ -124,6 +145,13 @@ class MainWindow(QMainWindow):
         self.addAction(self.editNode)
         self.shortcutList.append(self.editNode)
 
+        # Delete node
+        self.deleteNode = QtWidgets.QAction("Delete Node", self)
+        self.deleteNode.setShortcut("Delete")
+        self.deleteNode.triggered.connect(self.mapperDeleteNode)
+        self.addAction(self.deleteNode)
+        self.shortcutList.append(self.deleteNode)
+        
     def openFile(self):
         options = QtWidgets.QFileDialog.Options()
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","NoCarto Map Files (*.ncm)", options=options)
@@ -160,7 +188,7 @@ class MainWindow(QMainWindow):
     
     def deleteMapper(self):
         for node in self.mapper.nodes.values():
-            del(node)
+            node.setParent(None)
         self.mapper.deleteLater()
     
     def mapperCreateNode(self):
@@ -168,6 +196,9 @@ class MainWindow(QMainWindow):
 
     def mapperEditNode(self):
         self.mapper.setEditNode(True)
+
+    def mapperDeleteNode(self):
+        self.mapper.deleteCurrentNode()
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event

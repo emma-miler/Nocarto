@@ -139,7 +139,7 @@ class QNodeWidget(QtWidgets.QWidget):
         elif self.dragLeft:
             deltaOld = {"position": self.startMapperPos}
             deltaNew = {"position": self.position}
-            self.parent.stateMachine.pushChange(self, deltaOld, deltaNew, "editNode", origin="nodeWidget.py:mouseReleaseEvent")
+            self.parent.stateMachine.editNode(self, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
 
         if self.__mousePressPos is not None:
             moved = event.globalPos() - self.__mousePressPos 
@@ -154,7 +154,7 @@ class QNodeWidget(QtWidgets.QWidget):
             dialog = nodeDetailDialog.QNodeDetailDialog(self)
             dialog.exec()
             if dialog.apply:
-                self.parent.stateMachine.pushChange(self, dialog.nodeDeltaOld, dialog.nodeDeltaNew, "editNode", origin="nodeWidget.py:mouseDoubleClickEvent")
+                self.parent.stateMachine.editNode(self, dialog.nodeDeltaOld, dialog.nodeDeltaNew, origin="nodeWidget.py:mouseDoubleClickEvent")
                 self.applyChange(dialog.nodeDeltaNew)
 
     def applyChange(self, delta):
@@ -177,7 +177,7 @@ class QNodeWidget(QtWidgets.QWidget):
 
     def updateName(self):
         event = self.textEdit.text()
-        self.parent.stateMachine.pushChange(self, {"name": self.name}, {"name": event}, "editNode", origin="nodeWidget.py:updateName")
+        self.parent.stateMachine.editNode(self, {"name": self.name}, {"name": event}, origin="nodeWidget.py:updateName")
         self.name = event
         self.label.setText(event)
 

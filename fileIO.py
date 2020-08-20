@@ -82,20 +82,23 @@ def untangleTree(node):
         globals()["nodeList"].append(node)
         return
 
-
-# Save a map object into a file
-def saveFile(mapperObject, fileName):
-    output = {}
-    output["version"] = "0.0.1" # Version numbers currently unused
-    nodes = []
-    for node in mapperObject.nodes.values():
-        savedNode = {
+def serializeNode(node):
+    return {
             "id": node.id,
             "name": node.name,
             "position": node.position,
             "connections": node.connections,
             "data": node.data # TODO: cull unnecessary MindMap data
-        }
+    }
+
+# Save a map object into a file
+def saveFile(mapperObject, fileName):
+    # TODO: possibly remove duplicate connections
+    output = {}
+    output["version"] = "0.0.1" # Version numbers currently unused
+    nodes = []
+    for node in mapperObject.nodes.values():
+        savedNode = serializeNode(node)
         nodes.append(savedNode)
     output["nodes"] = nodes
     with open(fileName, "w") as outputFile:
