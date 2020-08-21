@@ -1,7 +1,7 @@
 import random
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-import nodeWidget
+import nodeWidget, edgeWidget
 import stateMachine
 import fileIO
 
@@ -38,6 +38,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.parent = parent
         self.nodes = {} # List of all nodes, with their id as the key
         self.edges = [] # List of edges currently being drawn
+        self.deadEdges = []
         self.map = map
 
         self.enableAA = False
@@ -62,10 +63,7 @@ class FreeFormMap(QtWidgets.QWidget):
         elif mapType == "freemap":
             if map is not None:
                 for node in map:
-                    self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"])
-
-        for node in self.nodes.values():
-            self.addConnections(node)
+                    x = self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"], push=False)
 
         #self.overlay = OverlayWidget(self)
 
@@ -108,26 +106,35 @@ class FreeFormMap(QtWidgets.QWidget):
         connectionList = connections if connections is not None else []
         newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
-        self.addConnections(newNode)
+        self.buildConnections(newNode)
 
         if push:
             self.stateMachine.addNode(newNode, "mapper.py:addNode")
 
         return newNode
 
-    def addConnections(self, node):
+    def buildConnections(self, node):
+        # Creates connections for existing node
         nodeId = node.id
         connections = node.connections
         if connections is not None:
             for connection in connections:
                 if connection in self.nodes:
-                    self.edges.append((nodeId, connection))
-
+                    otherNode = self.nodes[connection]
+                    for edge in self.edges:
+                        if edge == (node, otherNode):
+                            continue
+                    edge = edgeWidget.QEdgeWidget("", node, otherNode, parent=self)
+                    self.edges.append(edge)
 
     def addConnection(self, node1, node2):
+        for edge in self.edges:
+            if edge == (node1, node2):
+                return
         node1.connections.append(node2.id)
         node2.connections.append(node1.id)
-        self.edges.append((node1.id, node2.id))
+        edge = edgeWidget.QEdgeWidget("", node1, node2, parent=self)
+        self.edges.append(edge)
     
     def paintEvent(self, event):
         qp = QtGui.QPainter()
@@ -144,9 +151,9 @@ class FreeFormMap(QtWidgets.QWidget):
         #qp.fillRect(0, 0, self.width(), self.height()/2, QtGui.QBrush(QtGui.QColor(0, 64, 0)))
         #QtGui.QBrush(QtGui.QColor(0, 64, 0))
         linesToDraw = []
-        for edges in self.edges:
-            n1 = self.nodes[edges[0]]
-            n2 = self.nodes[edges[1]]
+        for edge in self.edges:
+            n1 = edge.node1
+            n2 = edge.node2
             e1 = n1.position
             e2 = n2.position
 
@@ -166,8 +173,6 @@ class FreeFormMap(QtWidgets.QWidget):
         connection = [] if self.selected is None else [self.selected.id]
         pos = [300, 300] if self.selected is None else [self.selected.position[0], self.selected.position[1] + 150]
         node = self.addNode("", pos, connection)
-        if connection is not None:
-            self.addConnection(self.nodes[connection[0]], node)
 
     def setEditNode(self, edit):
         if self.selected is not None:
@@ -185,7 +190,8 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def deleteNode(self, node):
-        self.edges = list(filter(lambda x: x[0] != node.id and x[1] != node.id, self.edges))  
+        res = list(filter(lambda edge: edge.node1 != node and edge.node2 != node, self.edges))
+        self.edges = res
         self.nodes.pop(node.id)
         node.setParent(None)
         node.deleteLater()
@@ -226,3 +232,4 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.rebuildEdge(atom["old"])
             else:
                 raise NotImplementedError("Atom type not yet implemented")
+            self.update()

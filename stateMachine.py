@@ -18,6 +18,8 @@ class StateMachine():
         self.doOffset = 0 # Holds the current index for undo/redo operations
 
     def addNode(self, node, data, origin=None):
+        if self.doOffset < len(self.stateList):
+            self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
             "node": node,
             "data": data,
@@ -27,6 +29,8 @@ class StateMachine():
         self.updateList()
     
     def deleteNode(self, data, origin=None):
+        if self.doOffset < len(self.stateList):
+            self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
             "data": data,
             "type": "deleteNode",
@@ -47,6 +51,8 @@ class StateMachine():
         self.updateList()
     
     def addEdge(self, edge, origin=None):
+        if self.doOffset < len(self.stateList):
+            self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
             "node": node,
             "type": "addEdge",
@@ -55,6 +61,8 @@ class StateMachine():
         self.updateList()
 
     def deleteEdge(self, edge, origin=None):
+        if self.doOffset < len(self.stateList):
+            self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
             "node": node,
             "type": "deleteEdge",

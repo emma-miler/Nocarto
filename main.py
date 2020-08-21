@@ -7,8 +7,6 @@ import mapper
 import shortcutDialog
 import fileIO
 
-# TODO: MAKE EDGES SYMMETRICAL!
-
 # TODO: Make some error handling dialogs
 # TODO: Make edges seperate objects with text rendering!!!
 # TODO: Add user settings
