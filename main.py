@@ -7,11 +7,12 @@ import mapper
 import shortcutDialog
 import fileIO
 
+# TODO: FIX QGRAPHICSVIEW SIZE IN MAPPER
+
 # TODO: Make some error handling dialogs
-# TODO: Make edges seperate objects with text rendering!!!
+# TODO: Make Edge objects properly serialized and add them to the save/load routine
 # TODO: Add user settings
 # TODO: Editable shortcuts
-# TODO: Make UI more customizable
 # TODO: implement proper translation and scaling
 # TODO: Add grid snapping feature?
 # TODO: Add undo/redo stack (foundations built, will work with delta system)
@@ -149,7 +150,7 @@ class MainWindow(QMainWindow):
         self.deleteNode.triggered.connect(self.mapperDeleteNode)
         self.addAction(self.deleteNode)
         self.shortcutList.append(self.deleteNode)
-        
+
     def openFile(self):
         options = QtWidgets.QFileDialog.Options()
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","NoCarto Map Files (*.ncm)", options=options)

@@ -91,6 +91,13 @@ def serializeNode(node):
             "data": node.data # TODO: cull unnecessary MindMap data
     }
 
+def serializeEdge(edge):
+    return {
+            "node1": edge.node1,
+            "node2": edge.node2,
+    }
+
+
 # Save a map object into a file
 def saveFile(mapperObject, fileName):
     # TODO: possibly remove duplicate connections

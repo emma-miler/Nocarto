@@ -65,7 +65,6 @@ class QNodeWidget(QtWidgets.QWidget):
         self.textEdit.hide()
 
         self.show()
-        self.parent.update()
 
     # Make this node the selected node
     # VISUAL CHANGE ONLY!

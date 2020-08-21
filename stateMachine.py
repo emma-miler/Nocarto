@@ -28,11 +28,12 @@ class StateMachine():
         })
         self.updateList()
     
-    def deleteNode(self, data, origin=None):
+    def deleteNode(self, data, edges=None, origin=None):
         if self.doOffset < len(self.stateList):
             self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
             "data": data,
+            "edges": edges,
             "type": "deleteNode",
             "origin": str(origin)
         })
@@ -54,7 +55,7 @@ class StateMachine():
         if self.doOffset < len(self.stateList):
             self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
-            "node": node,
+            "edge": edge,
             "type": "addEdge",
             "origin": str(origin)
         })
@@ -64,7 +65,7 @@ class StateMachine():
         if self.doOffset < len(self.stateList):
             self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
-            "node": node,
+            "edge": edge,
             "type": "deleteEdge",
             "origin": str(origin)
         })
@@ -74,7 +75,7 @@ class StateMachine():
         if self.doOffset < len(self.stateList):
             self.stateList = self.stateList[:self.doOffset]
         self.stateList.append({
-            "edge": node, 
+            "edge": edge, 
             "old": deltaOld,
             "new": deltaNew,
             "type": "editEdge",
