@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event
-        self.mapper.graphicsView.setRenderHint(QtGui.QPainter.Antialiasing, event)
+        #self.mapper.graphicsView.setRenderHint(QtGui.QPainter.Antialiasing, event)
         self.update() # redraw screen
 
     def showShortcutDialog(self, event):

@@ -116,14 +116,14 @@ class QNodeWidget(QtWidgets.QWidget):
                 self.__mouseMovePos = globalPos
         elif event.buttons() == QtCore.Qt.RightButton:
             #self.parent.tempLine = 1
-            #self.parent.tempLine = [self.center, event.windowPos()]
-            self.parent.tempLine.setLine(self.center.x(), self.center.y(), event.windowPos().x(), event.windowPos().y())
+            self.parent.tempLine = [self.center, event.windowPos()]
+            #self.parent.tempLine.setLine(self.center.x(), self.center.y(), event.windowPos().x(), event.windowPos().y())
             self.parent.update() 
 
         #super(DragButton, self).mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.parent.tempLine.setLine(-100, -100, -100, -100)
+        self.parent.tempLine = None
         self.parent.update()
         if self.dragRight:
             self.dragRight = False

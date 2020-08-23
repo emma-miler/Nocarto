@@ -4,6 +4,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 import nodeWidget, edgeWidget
 import stateMachine
 import fileIO
+import edgeDetailDialog
 
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -55,39 +56,10 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.root = None # Holds root node in a mindmap
 
-        #self.layout = QtWidgets.QVBoxLayout()
-        #self.setLayout(self.layout)
-
-        #self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
-
-        #self.setStyleSheet("background-color: red")
-        #self.sizePolicy().setVerticalPolicy(QtWidgets.QSizePolicy.Expanding)
-        #self.sizePolicy().setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
-        #self.adjustSize()
-        #print(self.parent.newWidget.rect())
-        #print(self.parent.newWidget.frameGeometry())
-        #print(self.rect())
-        #self.layout.setContentsMargins(0, 0, 0, 0)
+        self.polies = []
 
         # Set up state machine
         self.stateMachine = stateMachine.StateMachine(parent=self)
-
-        # Set up graphics view
-        # Set up graphics view
-        self.graphicsView = QtWidgets.QGraphicsView(self)
-        self.graphicsView.setMinimumSize(1000, 1000)
-        self.graphicsScene = QtWidgets.QGraphicsScene(0, 0, 0, 0, self)
-
-        # self.setDragMode(2)
-
-        # self.graphicsScene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0)))
-
-        self.graphicsView.setScene(self.graphicsScene)
-
-        self.graphicsScene.setSceneRect(0, 0, 1920, 1080)
-        self.graphicsView.setSceneRect(self.graphicsScene.sceneRect())
-
-        self.tempLine = self.graphicsScene.addLine(-100, -100, -100, -100, QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
 
         if mapType == "mindmap":
             if map is not None:
@@ -117,6 +89,7 @@ class FreeFormMap(QtWidgets.QWidget):
         #self.overlay = OverlayWidget(self)
 
         self.snapMode = False
+        self.tempLine = None
     
     def updateSelection(self, newSelection):
         if self.selected is not None:
@@ -173,24 +146,63 @@ class FreeFormMap(QtWidgets.QWidget):
         node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
         node2.connections = list(dict.fromkeys(node2.connections))
-        widget = QtWidgets.QLineEdit()
+        widget = QtWidgets.QLineEdit(self)
         edge = edgeWidget.QEdgeWidget("", node1, node2, widget, parent=self)
-        self.graphicsScene.addItem(edge)
-        self.graphicsScene.addWidget(widget)
+        #self.graphicsScene.addItem(edge)
+        #self.graphicsScene.addWidget(widget)
         self.edges.append(edge)
         self.update()
     
-    def paintEvent1(self, event):
+    def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
-        qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 5))
+        qp.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 15))
+
+        self.polies = []
+
+        if self.tempLine is not None:
+            qp.drawLine(self.tempLine[0], self.tempLine[1])
+
+        qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 0), 15))
 
         for edge in self.edges:
-            x = int((edge.node1.position[0] + edge.node2.position[0]) / 2)
-            y = int((edge.node1.position[1] + edge.node2.position[1]) / 2)
-            qp.drawText(x, y, str(edge.name))
-            qp.drawText(x, y, "test123")
+            n1 = edge.node1
+            m1 = edge.node2
+            e1 = n1.position
+            e2 = m1.position
+
+            horPos = 0.5
+            vertPos = 0.5
+
+            x1 = e1[0] + n1.width() * horPos
+            y1 = e1[1] + n1.height() * vertPos
+            x2 = e2[0] + m1.width() * (1 - horPos)
+            y2 = e2[1] + m1.height() * (1 - vertPos)
+
+            #qp.drawLime(x1, y1, x2, y2)
+            poly = QtGui.QPolygonF([
+                QtCore.QPointF(x1 - 15, y1),
+                QtCore.QPointF(x1 + 15, y1),
+                QtCore.QPointF(x2 + 15, y2),
+                QtCore.QPointF(x2 - 15, y2),
+            ])
+            poly1 = QtGui.QPolygonF([
+                QtCore.QPointF(x1, y1 - 15),
+                QtCore.QPointF(x1, y1 + 15),
+                QtCore.QPointF(x2, y2 + 15),
+                QtCore.QPointF(x2, y2 - 15),
+            ])
+
+            test = poly.united(poly1)
+            self.polies.append([poly, poly1, edge])
+
+            path = QtGui.QPainterPath()
+            color = QtGui.QColor(edge.color) if edge.color is not None else QtGui.QColor(128, 255, 128)
+            qp.setBrush(color)
+            path.setFillRule(QtCore.Qt.WindingFill)
+            path.addPolygon(test)
+            qp.drawPath(path)
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
         qp.end()
@@ -225,7 +237,6 @@ class FreeFormMap(QtWidgets.QWidget):
         other = list(filter(lambda filterEdge: filterEdge.node1 == node or filterEdge.node2 == node, self.edges))
         for edge in other:
             edge.destroy()
-            self.graphicsScene.removeItem(edge)
             del edge
         self.edges = res
         self.nodes.pop(node.id)
@@ -294,7 +305,22 @@ class FreeFormMap(QtWidgets.QWidget):
             else:
                 raise NotImplementedError("Atom type not yet implemented")
             self.update()
-    
+
+    def mouseDoubleClickEvent(self, event):
+        self.setCursor(QtCore.Qt.ArrowCursor)
+        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y() - 15)
+        for poly in self.polies:
+            if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
+                if event.buttons() == QtCore.Qt.LeftButton:
+                    dialog = edgeDetailDialog.QEdgeDetailDialog(poly[2])
+                    dialog.exec()
+                    if dialog.apply:
+                        self.stateMachine.editEdge(poly[2], dialog.edgeDeltaOld, dialog.edgeDeltaNew,
+                                                          origin="edgeWidget.py:mouseDoubleClickEvent")
+                        poly[2].applyChange(dialog.edgeDeltaNew)
+                    self.update()
+
     def update(self):
         for edge in self.edges:
             edge.updatePositions()
+        super().update()
