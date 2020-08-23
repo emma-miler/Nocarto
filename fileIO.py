@@ -1,7 +1,5 @@
 import xmltodict
-import pprint
 import json
-from itertools import chain
 import re
 
 # Warning: this function is likely to fail on bad data.
@@ -11,19 +9,15 @@ def parseFile(inFile):
         with open(inFile) as fd:
             doc = xmltodict.parse(fd.read())
 
-            conv = {"version": "0.0.1"}
-
             main = doc["map"]["node"]
 
             test = makeMindMapNode(None, main, "mindmap")
 
             globals()["nodeList"] = []
-            x = untangleTree(test)
+            untangleTree(test)
 
             return globals()["nodeList"]
 
-
-        #pprint.pprint(main)
     else:
         raise BaseException("Not yet implemented")
 
@@ -84,37 +78,45 @@ def untangleTree(node):
 
 def serializeNode(node):
     return {
-            "id": node.id,
-            "name": node.name,
-            "position": node.position,
-            "connections": node.connections,
-            "data": node.data # TODO: cull unnecessary MindMap data
+        "id": node.id,
+        "name": node.name,
+        "position": node.position,
+        "connections": node.connections,
+        "data": node.data # TODO: cull unnecessary MindMap data
     }
 
 def serializeEdge(edge):
     return {
-            "node1": edge.node1,
-            "node2": edge.node2,
+        "node1": edge.node1.id,
+        "node2": edge.node2.id,
+        "data": edge.data
     }
-
 
 # Save a map object into a file
 def saveFile(mapperObject, fileName):
     # TODO: possibly remove duplicate connections
-    output = {}
-    output["version"] = "0.0.1" # Version numbers currently unused
+    output = {"version": "0.0.1"}  # Version numbers currently unused
     nodes = []
     for node in mapperObject.nodes.values():
         savedNode = serializeNode(node)
         nodes.append(savedNode)
     output["nodes"] = nodes
+    edges = []
+    for edge in mapperObject.edges:
+        savedEdge = serializeEdge(edge)
+        edges.append(savedEdge)
+    output["edges"] = edges
     with open(fileName, "w") as outputFile:
-        outputFile.write(json.dumps(output))
+        outputFile.write(json.dumps(output, indent=4))
 
 # Simply opens the filename and loads the json data into a dictionary
 # As with parseFile, this is currently unsafe
 def openFile(fileName):
-    data = {}
     with open(fileName, "r") as inputFile:
         data = json.load(inputFile)
-    return data["nodes"]
+    if "edges" not in data:
+        data["edges"] = []
+    return {
+        "nodes": data["nodes"],
+        "edges": data["edges"]
+    }

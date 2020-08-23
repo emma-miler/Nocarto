@@ -73,10 +73,13 @@ class QEdgeDetailDialog(QtWidgets.QDialog):
                 self.edgeDeltaNew["data"] = {"color": color.name()}
 
     def nameChanged(self, event):
-        self.edgeDeltaNew["name"] = event
-        if "name" not in self.edgeDeltaOld:
-            self.edgeDeltaOld["name"] = self.edge.name
-    
+        if "data" in self.edgeDeltaOld:
+            self.edgeDeltaOld["data"]["name"] = self.edge.name
+            self.edgeDeltaNew["data"]["name"] = event
+        else:
+            self.edgeDeltaOld["data"] = {"name": self.edge.name}
+            self.edgeDeltaNew["data"] = {"name": event}
+
     def textChanged(self):
         event = str(self.textInput.toPlainText())
         if "data" in self.edgeDeltaNew:

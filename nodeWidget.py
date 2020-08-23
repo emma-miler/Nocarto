@@ -52,7 +52,8 @@ class QNodeWidget(QtWidgets.QWidget):
         if "color" in self.data:
             self.color = self.data["color"]
         
-        self.label = QtWidgets.QLabel(self.name)
+        self.label = QtWidgets.QLabel()
+        self.label.setText(self.name)
         self.label.setStyleSheet(f"background-color: {self.color}; color: black")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
@@ -115,13 +116,14 @@ class QNodeWidget(QtWidgets.QWidget):
                 self.__mouseMovePos = globalPos
         elif event.buttons() == QtCore.Qt.RightButton:
             #self.parent.tempLine = 1
-            self.parent.tempLine = [self.center, event.windowPos()]
+            #self.parent.tempLine = [self.center, event.windowPos()]
+            self.parent.tempLine.setLine(self.center.x(), self.center.y(), event.windowPos().x(), event.windowPos().y())
             self.parent.update() 
 
         #super(DragButton, self).mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        self.parent.tempLine = None
+        self.parent.tempLine.setLine(-100, -100, -100, -100)
         self.parent.update()
         if self.dragRight:
             self.dragRight = False
@@ -138,7 +140,7 @@ class QNodeWidget(QtWidgets.QWidget):
         elif self.dragLeft:
             deltaOld = {"position": self.startMapperPos}
             deltaNew = {"position": self.position}
-            self.parent.stateMachine.editNode(self, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
+            self.parent.stateMachine.editNode(self.id, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
 
         if self.__mousePressPos is not None:
             moved = event.globalPos() - self.__mousePressPos 
@@ -153,7 +155,7 @@ class QNodeWidget(QtWidgets.QWidget):
             dialog = nodeDetailDialog.QNodeDetailDialog(self)
             dialog.exec()
             if dialog.apply:
-                self.parent.stateMachine.editNode(self, dialog.nodeDeltaOld, dialog.nodeDeltaNew, origin="nodeWidget.py:mouseDoubleClickEvent")
+                self.parent.stateMachine.editNode(self.id, dialog.nodeDeltaOld, dialog.nodeDeltaNew, origin="nodeWidget.py:mouseDoubleClickEvent")
                 self.applyChange(dialog.nodeDeltaNew)
 
     def applyChange(self, delta):
@@ -176,7 +178,7 @@ class QNodeWidget(QtWidgets.QWidget):
 
     def updateName(self):
         event = self.textEdit.text()
-        self.parent.stateMachine.editNode(self, {"name": self.name}, {"name": event}, origin="nodeWidget.py:updateName")
+        self.parent.stateMachine.editNode(self.id, {"name": self.name}, {"name": event}, origin="nodeWidget.py:updateName")
         self.name = event
         self.label.setText(event)
 
@@ -186,12 +188,4 @@ class QNodeWidget(QtWidgets.QWidget):
         self.position = [x,y]
         self.center = QtCore.QPoint(self.position[0] + self.width()/2, self.position[1] + self.height()/2)
 
-        self.update()
-
-    # Currently unused draw function
-    def paintEvent(self, event):
-        qp = QtGui.QPainter()
-        qp.begin(self)
-        #qp.fillRect(0, 0, 100, 100, QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-        qp.end()
         self.update()

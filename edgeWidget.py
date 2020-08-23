@@ -5,22 +5,35 @@ import edgeDetailDialog
 # TODO: add routing points for line, and maybe make it support beziers
 
 class QEdgeWidget(QtWidgets.QGraphicsLineItem):
-    def __init__(self, name, node1, node2, lineEdit, data={}, parent=None):
+    def __init__(self, name, node1, node2, lineEdit: QtWidgets.QLineEdit, data=None, parent=None):
         super().__init__(node1.position[0], node1.position[1], node2.position[0], node2.position[1])
+        if data is None:
+            data = {}
         self.name = name
         self.node1 = node1
         self.node2 = node2
         self.lineEdit = lineEdit
         self.data = data
-
         self.parent = parent
 
-        self.lineEdit.setText(self.name)
-        self.lineEdit.editingFinished.connect(self.updateName)
+        self.setAcceptHoverEvents(True)
+
+        self.lineEdit.setStyleSheet("background-color: rgb(255, 255, 173); color: black; border: none")
         self.lineEdit.setAlignment(QtCore.Qt.AlignCenter)
-        self.lineEdit.setStyleSheet("background-color: red")
-        self.lineEdit.resize(100, 50)
-        # TODO: make this expand automatically as more text is added, i can't figure it out right now
+        if self.name == "":
+            self.lineEdit.hide()
+        self.lineEdit.textEdited.connect(self.updateName)
+        self.fm = QtGui.QFontMetrics(self.lineEdit.font())
+
+        self.color = None
+        if "color" in self.data:
+            self.color = self.data["color"]
+
+        if "name" in self.data:
+            self.name = self.data["name"]
+            self.lineEdit.setText(self.name)
+
+        self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 10, self.fm.height() * 2)
 
         self.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
 
@@ -28,6 +41,7 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
 
         #self.setAcceptHoverEvents(True)
         self.setCursor(QtCore.Qt.IBeamCursor)
+        #self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 0, self.fm.height() * 2)
 
     def getRepr(self):
         return [self.node1, self.node2]
@@ -50,9 +64,6 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
                 self.applyChange(dialog.edgeDeltaNew)
 
     def applyChange(self, delta):
-        if "name" in delta:
-            self.name = delta["name"]
-            self.lineEdit.setText(self.name)
         if "data" in delta:
             newData = delta["data"]
             for item in newData.keys():
@@ -62,12 +73,22 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
                     print(newData[item])
                     self.color = newData["color"] if newData["color"] is not None else "gray"
                     self.setPen(QtGui.QPen(QtGui.QColor(self.color), 10))
+                if item == "name":
+                    self.name = newData[item]
+                    self.lineEdit.setText(self.name)
+                    self.data["name"] = self.name
+                    self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 10, self.fm.height() * 2)
+                    self.updatePositions()
+                    if self.name != "":
+                        self.lineEdit.show()
 
     def updateName(self):
         event = self.lineEdit.text()
         self.parent.stateMachine.editEdge(self, {"name": self.name}, {"name": event}, origin="nodeWidget.py:updateName")
         self.name = event
-        self.lineEdit.setText(event)
+        self.data["name"] = self.name
+        self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 10, self.fm.height() * 2)
+        self.updatePositions()
 
     def updatePositions(self):
         n1 = self.node1
@@ -86,3 +107,6 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
         self.setLine(x1, y1, x2, y2)
 
         self.lineEdit.move(int((x1 + x2) / 2) - int(self.lineEdit.width() / 2), int((y1 + y2) / 2) - int(self.lineEdit.height() / 2))
+
+    def destroy(self):
+        self.lineEdit.setParent(None)

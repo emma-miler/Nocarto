@@ -8,11 +8,11 @@ import fileIO
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setMinimumSize(1000, 1000)
+        self.setMinimumSize(500, 500)
 
         self.parent=parent
 
-        #self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
+        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
 
         self.circleSize = 20
         self.hcs = int(self.circleSize / 2)
@@ -25,14 +25,14 @@ class OverlayWidget(QtWidgets.QWidget):
         self.w = self.scene.addWidget(self.button)
         self.w.setPos(100, 100)
 
-    def paintEvent1(self, event):
+    def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
         #qp.fillRect(0, 0, 1000, 1000, QtGui.QBrush(QtGui.QColor(0, 64, 0)))
         qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-        qp.setPen(0)
-        for id in self.parent.nodes:
-            node = self.parent.nodes[id]
+        qp.drawText(0, 50, f"Edges on screen: {str(len(self.parent.edges))}")
+        for nodeId in self.parent.nodes:
+            node = self.parent.nodes[nodeId]
             pos = node.position
             qp.drawEllipse(pos[0] - self.hcs,                   pos[1] + node.height()/2 - self.hcs,    self.circleSize,    self.circleSize)
             qp.drawEllipse(pos[0] + node.width() - self.hcs,    pos[1] + node.height()/2 - self.hcs,    self.circleSize, self.circleSize)
@@ -46,7 +46,8 @@ class FreeFormMap(QtWidgets.QWidget):
         self.parent = parent
         self.nodes = {} # List of all nodes, with their id as the key
         self.edges = [] # List of edges currently being drawn
-        self.map = map
+        self.mapNodes = map["nodes"] if map is not None else []
+        self.mapEdges = map["edges"] if map is not None else []
 
         self.enableAA = False
 
@@ -54,29 +55,43 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.root = None # Holds root node in a mindmap
 
+        #self.layout = QtWidgets.QVBoxLayout()
+        #self.setLayout(self.layout)
+
         #self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
+
+        #self.setStyleSheet("background-color: red")
+        #self.sizePolicy().setVerticalPolicy(QtWidgets.QSizePolicy.Expanding)
+        #self.sizePolicy().setHorizontalPolicy(QtWidgets.QSizePolicy.Expanding)
+        #self.adjustSize()
+        #print(self.parent.newWidget.rect())
+        #print(self.parent.newWidget.frameGeometry())
+        #print(self.rect())
+        #self.layout.setContentsMargins(0, 0, 0, 0)
 
         # Set up state machine
         self.stateMachine = stateMachine.StateMachine(parent=self)
 
         # Set up graphics view
+        # Set up graphics view
         self.graphicsView = QtWidgets.QGraphicsView(self)
         self.graphicsView.setMinimumSize(1000, 1000)
         self.graphicsScene = QtWidgets.QGraphicsScene(0, 0, 0, 0, self)
 
+        # self.setDragMode(2)
 
-        #self.setDragMode(2)
-
-        #self.graphicsScene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0)))
+        # self.graphicsScene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0)))
 
         self.graphicsView.setScene(self.graphicsScene)
 
         self.graphicsScene.setSceneRect(0, 0, 1920, 1080)
         self.graphicsView.setSceneRect(self.graphicsScene.sceneRect())
 
+        self.tempLine = self.graphicsScene.addLine(-100, -100, -100, -100, QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
+
         if mapType == "mindmap":
             if map is not None:
-                for node in map:
+                for node in self.mapNodes:
                     # TODO: implement positioning for mindmaps
                     pos = [300, 300]
                     if node["data"]["parent"] is None:
@@ -86,8 +101,14 @@ class FreeFormMap(QtWidgets.QWidget):
                         self.root = x
         elif mapType == "freemap":
             if map is not None:
-                for node in map:
-                    x = self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"], push=False)
+                # Adds all of the nodes in the map to the mapper object
+                for node in self.mapNodes:
+                    self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"], push=False)
+                # Loops over all edges in the map and applies their data to the correct edges in the mapper object
+                for mapedge in self.mapEdges:
+                    for edge in self.edges:
+                        if [self.nodes[mapedge["node1"]], self.nodes[mapedge["node2"]]] == edge: # Convert from id to nodeWidget and check equality
+                            edge.applyChange({"data": mapedge["data"]})
 
         if map is None:
             self.root = self.addNode("test", [300, 300], None)
@@ -95,7 +116,6 @@ class FreeFormMap(QtWidgets.QWidget):
 
         #self.overlay = OverlayWidget(self)
 
-        self.tempLine = None
         self.snapMode = False
     
     def updateSelection(self, newSelection):
@@ -133,13 +153,12 @@ class FreeFormMap(QtWidgets.QWidget):
         self.buildConnections(newNode)
 
         if push:
-            self.stateMachine.addNode(newNode, "mapper.py:addNode")
+            self.stateMachine.addNode(fileIO.serializeNode(newNode), origin="mapper.py:addNode")
 
         return newNode
 
     def buildConnections(self, node):
         # Creates connections for existing node
-        nodeId = node.id
         connections = node.connections
         if connections is not None:
             for connection in connections:
@@ -151,25 +170,27 @@ class FreeFormMap(QtWidgets.QWidget):
             if edge == (node1, node2):
                 return
         node1.connections.append(node2.id)
+        node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
-        lineEdit = QtWidgets.QLineEdit()
-        edge = edgeWidget.QEdgeWidget("test123", node1, node2, lineEdit, parent=self)
+        node2.connections = list(dict.fromkeys(node2.connections))
+        widget = QtWidgets.QLineEdit()
+        edge = edgeWidget.QEdgeWidget("", node1, node2, widget, parent=self)
         self.graphicsScene.addItem(edge)
-        self.graphicsScene.addWidget(lineEdit)
+        self.graphicsScene.addWidget(widget)
         self.edges.append(edge)
         self.update()
     
-    def paintEvent(self, event):
+    def paintEvent1(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 5))
-        
+
         for edge in self.edges:
             x = int((edge.node1.position[0] + edge.node2.position[0]) / 2)
             y = int((edge.node1.position[1] + edge.node2.position[1]) / 2)
             qp.drawText(x, y, str(edge.name))
-            qp.drawText(x, y, "ttest123")
+            qp.drawText(x, y, "test123")
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
         qp.end()
@@ -180,8 +201,9 @@ class FreeFormMap(QtWidgets.QWidget):
 
     def createNewNode(self):
         connection = [] if self.selected is None else [self.selected.id]
+        # noinspection PyUnresolvedReferences
         pos = [300, 300] if self.selected is None else [self.selected.position[0], self.selected.position[1] + 150]
-        node = self.addNode("", pos, connection)
+        self.addNode("", pos, connection)
 
     def setEditNode(self, edit):
         if self.selected is not None:
@@ -199,11 +221,12 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def deleteNode(self, node):
-        res = list(filter(lambda edge: edge.node1 != node and edge.node2 != node, self.edges))
-        other = list(filter(lambda edge: edge.node1 == node or edge.node2 == node, self.edges))
+        res = list(filter(lambda filterEdge: filterEdge.node1 != node and filterEdge.node2 != node, self.edges))
+        other = list(filter(lambda filterEdge: filterEdge.node1 == node or filterEdge.node2 == node, self.edges))
         for edge in other:
+            edge.destroy()
             self.graphicsScene.removeItem(edge)
-            del(edge)
+            del edge
         self.edges = res
         self.nodes.pop(node.id)
         node.setParent(None)
@@ -220,7 +243,7 @@ class FreeFormMap(QtWidgets.QWidget):
                         connections.append(node.id)
             self.selected.connections = connections
             # When deleting a node, we save its serialized data to the state machine so we can rebuild it later
-            connectedEdges = list(filter(lambda edge: edge.node1 == node or edge.node2 == node, self.edges))
+            connectedEdges = list(filter(lambda filterEdge: filterEdge.node1 == node or filterEdge.node2 == node, self.edges))
             serialized = []
             for edge in connectedEdges:
                 serialized.append(fileIO.serializeEdge(edge))
@@ -236,9 +259,9 @@ class FreeFormMap(QtWidgets.QWidget):
         if atom is not None:
             print(atom)
             if atom["type"] == "editNode":
-                atom["node"].applyChange(atom["old"])
+                self.nodes[atom["id"]].applyChange(atom["old"])
             elif atom["type"] == "addNode":
-                self.deleteNode(atom["node"])
+                self.deleteNode(self.nodes[atom["data"]["id"]])
             elif atom["type"] == "deleteNode":
                 self.rebuildNode(atom["data"])
             elif atom["type"] == "editEdge":
@@ -246,6 +269,27 @@ class FreeFormMap(QtWidgets.QWidget):
             elif atom["type"] == "addEdge":
                 self.deleteEdge(atom["old"])
             elif atom["type"] == "deleteEdge":
+                self.rebuildEdge(atom["old"])
+            else:
+                raise NotImplementedError("Atom type not yet implemented")
+            self.update()
+
+    def redo(self):
+        atom = self.stateMachine.redo()
+        if atom is not None:
+            print(atom)
+            if atom["type"] == "editNode":
+                self.nodes[atom["id"]].applyChange(atom["new"])
+            elif atom["type"] == "deleteNode":
+                self.deleteNode(self.nodes[atom["data"]["id"]])
+            elif atom["type"] == "addNode":
+                print(atom["data"])
+                self.rebuildNode(atom["data"])
+            elif atom["type"] == "editEdge":
+                atom["edge"].applyChange(atom["new"])
+            elif atom["type"] == "deleteEdge":
+                self.deleteEdge(atom["old"])
+            elif atom["type"] == "addEdge":
                 self.rebuildEdge(atom["old"])
             else:
                 raise NotImplementedError("Atom type not yet implemented")

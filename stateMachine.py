@@ -10,18 +10,21 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 # editEdge      (edge, oldData, newData)        edge's data edited
 # deleteEdge    (edge)                          edge deleted 
 
-class StateMachine():
+class StateMachine:
     def __init__(self, parent=None):
         self.parent = parent
 
-        self.stateList = []
+        self.undoList = []
+        self.redoList = []
         self.doOffset = 0 # Holds the current index for undo/redo operations
 
-    def addNode(self, node, data, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
-            "node": node,
+    def checkOffset(self):
+        if len(self.redoList) > 0:
+            self.redoList = []
+
+    def addNode(self, data, origin=None):
+        self.checkOffset()
+        self.undoList.append({
             "data": data,
             "type": "addNode",
             "origin": str(origin)
@@ -29,9 +32,8 @@ class StateMachine():
         self.updateList()
     
     def deleteNode(self, data, edges=None, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
+        self.checkOffset()
+        self.undoList.append({
             "data": data,
             "edges": edges,
             "type": "deleteNode",
@@ -39,11 +41,10 @@ class StateMachine():
         })
         self.updateList()
 
-    def editNode(self, node, deltaOld, deltaNew, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
-            "node": node, 
+    def editNode(self, id, deltaOld, deltaNew, origin=None):
+        self.checkOffset()
+        self.undoList.append({
+            "id": id,
             "old": deltaOld,
             "new": deltaNew,
             "type": "editNode",
@@ -52,9 +53,8 @@ class StateMachine():
         self.updateList()
     
     def addEdge(self, edge, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
+        self.checkOffset()
+        self.undoList.append({
             "edge": edge,
             "type": "addEdge",
             "origin": str(origin)
@@ -62,9 +62,8 @@ class StateMachine():
         self.updateList()
 
     def deleteEdge(self, edge, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
+        self.checkOffset()
+        self.undoList.append({
             "edge": edge,
             "type": "deleteEdge",
             "origin": str(origin)
@@ -72,9 +71,8 @@ class StateMachine():
         self.updateList()
 
     def editEdge(self, edge, deltaOld, deltaNew, origin=None):
-        if self.doOffset < len(self.stateList):
-            self.stateList = self.stateList[:self.doOffset]
-        self.stateList.append({
+        self.checkOffset()
+        self.undoList.append({
             "edge": edge, 
             "old": deltaOld,
             "new": deltaNew,
@@ -87,14 +85,22 @@ class StateMachine():
         self.doOffset += 1
         #model = self.parent.parent.listView.model()
         #model.removeRows(0, model.rowCount())
-        #for state in self.stateList:
+        #for state in self.undoList:
         #    item = QtGui.QStandardItem(str(state))
         #    model.appendRow(item)
 
     def undo(self):
-        if self.doOffset > 0:
-            self.doOffset -= 1
-            atom = self.stateList[self.doOffset]
+        if len(self.undoList) > 0:
+            atom = self.undoList.pop()
+            self.redoList.append(atom)
+            return atom
+        else:
+            return None
+
+    def redo(self):
+        if len(self.redoList) > 0:
+            atom = self.redoList.pop()
+            self.undoList.append(atom)
             return atom
         else:
             return None

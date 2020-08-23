@@ -65,7 +65,7 @@ class QNodeDetailDialog(QtWidgets.QDialog):
         self.model = QtGui.QStandardItemModel()
 
         for item in node.data.keys():
-            if item == "color" or item == "text": # These are already handled as seperate widgets
+            if item == "color" or item == "text": # These are already handled as separate widgets
                 continue
             name = QtGui.QStandardItem(str(item))
             name.setFlags(QtCore.Qt.ItemIsEnabled)

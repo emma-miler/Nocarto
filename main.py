@@ -1,6 +1,5 @@
-
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QDesktopWidget, QWidget
-from PyQt5 import QtGui, QtWidgets, uic, QtCore
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 import sys
 import mapper
@@ -8,6 +7,8 @@ import shortcutDialog
 import fileIO
 
 # TODO: FIX QGRAPHICSVIEW SIZE IN MAPPER
+# TODO: Make events not bubble when in edit mode
+
 
 # TODO: Make some error handling dialogs
 # TODO: Make Edge objects properly serialized and add them to the save/load routine
@@ -15,45 +16,43 @@ import fileIO
 # TODO: Editable shortcuts
 # TODO: implement proper translation and scaling
 # TODO: Add grid snapping feature?
-# TODO: Add undo/redo stack (foundations built, will work with delta system)
 
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
-        super().__init__()
+        super().__init__(parent=parent)
 
-        self.setupUi()
+        self.parent=parent
+
+        #self.setupUi()
 
         self.zoomLevel = 100
         self.screenOffset = [0, 0]
 
-        self.setMinimumSize(500, 500)
+        #self.setMinimumSize(500, 500)
 
         self.savedFileName = None
+
+        self.setupUi()
 
         #map = fileIO.parseFile("test.mm")
 
         self.newWidget = QtWidgets.QWidget()
-        self.layout = QtWidgets.QHBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.newWidget.setLayout(self.layout)
 
-        self.model = QtGui.QStandardItemModel()
-        item = QtGui.QStandardItem("Item")
-        item.setFlags(QtCore.Qt.ItemIsEnabled)
-        self.model.appendRow(item)
-        
-        self.listView = QtWidgets.QListView()
-        self.listView.setMaximumSize(800, 1000)
-        self.listView.setModel(self.model)
+
 
         #self.mapper = mapper.FreeFormMap(map)
         self.mapper = mapper.FreeFormMap(parent=self)
-        self.mapper.setMinimumSize(500, 500)
+        #self.mapper.setMinimumSize(1000, 1000)
 
-        self.layout.addWidget(self.mapper)
+        self.setCentralWidget(self.mapper)
+        self.newWidget.setStyleSheet("background-color: blue")
+
+        #self.layout.addWidget(self.mapper)
         #self.layout.addWidget(self.listView)
-
-        self.setCentralWidget(self.newWidget)
 
         # Setting up statusbar
         self.statusBar = QtWidgets.QStatusBar(parent=self)
@@ -66,6 +65,7 @@ class MainWindow(QMainWindow):
         self.debugBox = QtWidgets.QCheckBox("Enable AntiAliasing")
         self.debugBox.clicked.connect(self.setMapperAA)
         self.statusBar.addWidget(self.debugBox)
+        self.debugBox.click()
 
         self.menuBar = self.menuBar()
 
@@ -155,20 +155,22 @@ class MainWindow(QMainWindow):
         options = QtWidgets.QFileDialog.Options()
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","NoCarto Map Files (*.ncm)", options=options)
         if fileName:
-            map = fileIO.openFile(fileName) # Generate a nodelist from the file
+            newMap = fileIO.openFile(fileName) # Generate a nodelist from the file
             self.deleteMapper() # Remove the current map widget
-            self.mapper = mapper.FreeFormMap(map, "freemap") # Create a new map widget and set it as the central widget
+            self.mapper = mapper.FreeFormMap(newMap, "freemap") # Create a new map widget and set it as the central widget
             self.setCentralWidget(self.mapper)
             self.savedFileName = fileName # update the filename used when saving
+            self.setMapperAA(self.debugBox.isChecked())
     
     def importFile(self):
         options = QtWidgets.QFileDialog.Options()
         fileName, _ = QtWidgets.QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;FreeMind Files (*.mm)", options=options)
         if fileName:
-            map = fileIO.parseFile(fileName) # Generate a nodelist from the file
+            newMap = fileIO.parseFile(fileName) # Generate a nodelist from the file
             self.deleteMapper() # Remove the current map widget
-            self.mapper = mapper.FreeFormMap(map, "mindmap") # Create a new map widget and set it as the central widget
+            self.mapper = mapper.FreeFormMap(newMap, "mindmap") # Create a new map widget and set it as the central widget
             self.setCentralWidget(self.mapper)
+            self.setMapperAA(self.debugBox.isChecked())
 
     def saveFile(self):
         if self.savedFileName is None: # Check if we already have a known file we can write to, otherwise, open save as dialog
@@ -189,6 +191,12 @@ class MainWindow(QMainWindow):
         for node in self.mapper.nodes.values():
             node.setParent(None)
         self.mapper.deleteLater()
+
+    # Important notice:
+    # The following functions are linked to QActions, and are simply to pass on a signal to the mapper
+    # The reason they are separate functions is because the mapper object can be destroyed
+    # If the mapper is replaced, the reference to the object is not updated in the actions.
+    # This means that the action will try to access a non-existent object, crashing the program
     
     def mapperCreateNode(self):
         self.mapper.createNewNode()
@@ -201,6 +209,7 @@ class MainWindow(QMainWindow):
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event
+        self.mapper.graphicsView.setRenderHint(QtGui.QPainter.Antialiasing, event)
         self.update() # redraw screen
 
     def showShortcutDialog(self, event):
@@ -211,10 +220,14 @@ class MainWindow(QMainWindow):
         self.mapper.undo()
 
     def redo(self):
-        pass
+        self.mapper.redo()
 
     def setupUi(self):
         self.setWindowTitle('NoCarto')
+        frameGm = self.frameGeometry()
+        centerPoint = QtWidgets.QApplication.desktop().screenGeometry(0).center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
         self.showMaximized()
 
 def main():
