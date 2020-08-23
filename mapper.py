@@ -157,7 +157,7 @@ class FreeFormMap(QtWidgets.QWidget):
         qp = QtGui.QPainter()
         qp.begin(self)
         qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
-        qp.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 15))
+        qp.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
 
         self.polies = []
 
@@ -182,16 +182,16 @@ class FreeFormMap(QtWidgets.QWidget):
 
             #qp.drawLime(x1, y1, x2, y2)
             poly = QtGui.QPolygonF([
-                QtCore.QPointF(x1 - 15, y1),
-                QtCore.QPointF(x1 + 15, y1),
-                QtCore.QPointF(x2 + 15, y2),
-                QtCore.QPointF(x2 - 15, y2),
+                QtCore.QPointF(x1 - 5, y1),
+                QtCore.QPointF(x1 + 5, y1),
+                QtCore.QPointF(x2 + 5, y2),
+                QtCore.QPointF(x2 - 5, y2),
             ])
             poly1 = QtGui.QPolygonF([
-                QtCore.QPointF(x1, y1 - 15),
-                QtCore.QPointF(x1, y1 + 15),
-                QtCore.QPointF(x2, y2 + 15),
-                QtCore.QPointF(x2, y2 - 15),
+                QtCore.QPointF(x1, y1 - 5),
+                QtCore.QPointF(x1, y1 + 5),
+                QtCore.QPointF(x2, y2 + 5),
+                QtCore.QPointF(x2, y2 - 5),
             ])
 
             test = poly.united(poly1)
