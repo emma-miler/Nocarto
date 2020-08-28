@@ -4,9 +4,9 @@ import edgeDetailDialog
 
 # TODO: add routing points for line, and maybe make it support beziers
 
-class QEdgeWidget(QtWidgets.QGraphicsLineItem):
+class QEdgeWidget():
     def __init__(self, name, node1, node2, lineEdit: QtWidgets.QLineEdit, data=None, parent=None):
-        super().__init__(node1.position[0], node1.position[1], node2.position[0], node2.position[1])
+        super().__init__()
         if data is None:
             data = {}
         self.name = name
@@ -16,13 +16,13 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
         self.data = data
         self.parent = parent
 
-        self.setAcceptHoverEvents(True)
-
         self.lineEdit.setStyleSheet("background-color: rgb(255, 255, 173); color: black; border: none")
         self.lineEdit.setAlignment(QtCore.Qt.AlignCenter)
         if self.name == "":
             self.lineEdit.hide()
         self.lineEdit.textEdited.connect(self.updateName)
+        self.lineEdit.focusInEvent = self.lineFocusIn
+        self.lineEdit.focusOutEvent = self.lineFocusOut
         self.fm = QtGui.QFontMetrics(self.lineEdit.font())
 
         self.color = None
@@ -35,20 +35,29 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
 
         self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 10, self.fm.height() * 2)
 
-        self.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
-
         self.updatePositions()
 
-        #self.setAcceptHoverEvents(True)
-        self.setCursor(QtCore.Qt.IBeamCursor)
-        #self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 0, self.fm.height() * 2)
+    def lineFocusIn(self, a0):
+        self.lineEdit.selectAll()
+        self.lineEdit.update()
+        self.parent.selected = self
+        self.parent.inEditMode = True
+
+    def lineFocusOut(self, a0):
+        self.lineEdit.deselect()
+        self.lineEdit.repaint()
+        self.parent.selected = None
+        self.parent.inEditMode = False
 
     def getRepr(self):
         return [self.node1, self.node2]
 
     def __eq__(self, otherObj):
-        on1 = otherObj[0]
-        on2 = otherObj[1]
+        try:
+            on1 = otherObj[0]
+            on2 = otherObj[1]
+        except TypeError:
+            return None
         return (on1 == self.node1 and on2 == self.node2) or (on2 == self.node1 and on1 == self.node2)
 
     def mousePressEvent(self, event):
@@ -103,10 +112,12 @@ class QEdgeWidget(QtWidgets.QGraphicsLineItem):
         y1 = e1[1] + n1.height() * vertPos
         x2 = e2[0] + n2.width() * (1-horPos)
         y2 = e2[1] + n2.height() * (1-vertPos)
-        
-        self.setLine(x1, y1, x2, y2)
+
 
         self.lineEdit.move(int((x1 + x2) / 2) - int(self.lineEdit.width() / 2), int((y1 + y2) / 2) - int(self.lineEdit.height() / 2))
 
     def destroy(self):
         self.lineEdit.setParent(None)
+
+    def update(self):
+        pass

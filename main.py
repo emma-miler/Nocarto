@@ -6,8 +6,6 @@ import mapper
 import shortcutDialog
 import fileIO
 
-# TODO: Make events not bubble when in edit mode
-
 # TODO: Make some error handling dialogs
 # TODO: Make Edge objects properly serialized and add them to the save/load routine
 # TODO: Add user settings
@@ -197,13 +195,13 @@ class MainWindow(QMainWindow):
     # This means that the action will try to access a non-existent object, crashing the program
     
     def mapperCreateNode(self):
-        self.mapper.createNewNode()
+        self.mapper.handleAction("createNode")
 
     def mapperEditNode(self):
-        self.mapper.setEditNode(True)
+        self.mapper.handleAction("editNode")
 
     def mapperDeleteNode(self):
-        self.mapper.deleteCurrentNode()
+        self.mapper.handleAction("deleteNode")
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event

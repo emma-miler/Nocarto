@@ -51,6 +51,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.mapEdges = map["edges"] if map is not None else []
 
         self.enableAA = False
+        self.inEditMode = False
 
         self.selected = None # Holds selected node
 
@@ -93,12 +94,13 @@ class FreeFormMap(QtWidgets.QWidget):
     
     def updateSelection(self, newSelection):
         if self.selected is not None:
-            self.selected.setSelected(False)
+            if type(self.selected) == nodeWidget.QNodeWidget:
+                self.selected.setSelected(False)
+            elif type(self.selected) == edgeWidget.QEdgeWidget:
+                pass
         if newSelection is not None:
             newSelection.setSelected(True)
-
         self.selected = newSelection
-
 
     def addNode(self, name, position, connections, data=None, id=None, push=True):
         # Generate a random id
@@ -146,8 +148,8 @@ class FreeFormMap(QtWidgets.QWidget):
         node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
         node2.connections = list(dict.fromkeys(node2.connections))
-        widget = QtWidgets.QLineEdit(self)
-        edge = edgeWidget.QEdgeWidget("", node1, node2, widget, parent=self)
+        lineEdit = QtWidgets.QLineEdit(self)
+        edge = edgeWidget.QEdgeWidget("", node1, node2, lineEdit, parent=self)
         #self.graphicsScene.addItem(edge)
         #self.graphicsScene.addWidget(widget)
         self.edges.append(edge)
@@ -199,6 +201,7 @@ class FreeFormMap(QtWidgets.QWidget):
 
             path = QtGui.QPainterPath()
             color = QtGui.QColor(edge.color) if edge.color is not None else QtGui.QColor(128, 255, 128)
+            color = QtGui.QColor(255, 255, 255) if self.selected is edge else color
             qp.setBrush(color)
             path.setFillRule(QtCore.Qt.WindingFill)
             path.addPolygon(test)
@@ -206,10 +209,6 @@ class FreeFormMap(QtWidgets.QWidget):
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
         qp.end()
-
-    def mousePressEvent(self, event):
-        self.setEditNode(False)
-        self.updateSelection(None)
 
     def createNewNode(self):
         connection = [] if self.selected is None else [self.selected.id]
@@ -220,10 +219,33 @@ class FreeFormMap(QtWidgets.QWidget):
     def setEditNode(self, edit):
         if self.selected is not None:
             if edit is True:
+                self.inEditMode = True
+                if type(self.selected) == nodeWidget.QNodeWidget:
+                    self.selected.label.hide()
+                    self.selected.textEdit.show()
+                    self.selected.textEdit.setFocus()
+            else:
+                self.inEditMode = False
+                if type(self.selected) == nodeWidget.QNodeWidget:
+                    newText = self.selected.textEdit.text()
+                    self.selected.text = newText
+                    self.selected.label.setText(newText)
+                    self.selected.label.show()
+                    self.selected.textEdit.hide()
+                else:
+                    pass
+            self.selected.update()
+            self.update()
+
+    def setEditEdge(self, edit):
+        if self.selected is not None:
+            if edit is True:
+                self.inEditMode = True
                 self.selected.label.hide()
                 self.selected.textEdit.show()
                 self.selected.textEdit.setFocus()
             else:
+                self.inEditMode = False
                 newText = self.selected.textEdit.text()
                 self.selected.text = newText
                 self.selected.label.setText(newText)
@@ -307,7 +329,6 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def mouseDoubleClickEvent(self, event):
-        self.setCursor(QtCore.Qt.ArrowCursor)
         localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y() - 15)
         for poly in self.polies:
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
@@ -319,6 +340,26 @@ class FreeFormMap(QtWidgets.QWidget):
                                                           origin="edgeWidget.py:mouseDoubleClickEvent")
                         poly[2].applyChange(dialog.edgeDeltaNew)
                     self.update()
+
+    def mousePressEvent(self, event):
+        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y() - 15)
+        self.setFocus()
+        self.setEditNode(False)
+        self.updateSelection(None)
+        for poly in self.polies:
+            if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
+                if event.buttons() == QtCore.Qt.LeftButton:
+                    self.selected = poly[2]
+        self.update()
+
+    def handleAction(self, action, origin=None):
+        if not self.inEditMode:
+            if action == "createNode":
+                self.createNewNode()
+            elif action == "editNode":
+                self.setEditNode(True)
+            elif action == "deleteNode":
+                self.deleteCurrentNode()
 
     def update(self):
         for edge in self.edges:
