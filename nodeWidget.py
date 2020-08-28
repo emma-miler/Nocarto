@@ -6,8 +6,6 @@ class QNodeWidget(QtWidgets.QWidget):
     def __init__(self, id: int, name: str, position: tuple or list, connections=None, data=None, parent=None):
         super().__init__(parent=parent)
 
-        #self.setMinimumSize(100,100)
-
         self.parent = parent
 
         assert(type(id) == int)

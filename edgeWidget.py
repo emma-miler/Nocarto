@@ -81,7 +81,6 @@ class QEdgeWidget():
                     print("test")
                     print(newData[item])
                     self.color = newData["color"] if newData["color"] is not None else "gray"
-                    self.setPen(QtGui.QPen(QtGui.QColor(self.color), 10))
                 if item == "name":
                     self.name = newData[item]
                     self.lineEdit.setText(self.name)
