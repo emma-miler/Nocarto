@@ -2,3 +2,6 @@ __pycache__
 *.mm
 *.ncm
 .idea
+build
+dist
+main.spec

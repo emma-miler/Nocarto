@@ -6,9 +6,7 @@ import mapper
 import shortcutDialog
 import fileIO
 
-# TODO: FIX QGRAPHICSVIEW SIZE IN MAPPER
 # TODO: Make events not bubble when in edit mode
-
 
 # TODO: Make some error handling dialogs
 # TODO: Make Edge objects properly serialized and add them to the save/load routine
@@ -29,7 +27,7 @@ class MainWindow(QMainWindow):
         self.zoomLevel = 100
         self.screenOffset = [0, 0]
 
-        #self.setMinimumSize(500, 500)
+        self.setMinimumSize(500, 500)
 
         self.savedFileName = None
 
