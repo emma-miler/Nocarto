@@ -1,7 +1,5 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-# TODO: add support for operations involving multiple nodes, e.g: mass delete
-
 # Action types:
 # addNode       (node, data)                    new node created
 # deleteNode    (data)                          node deleted

@@ -59,6 +59,9 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.polies = []
 
+        self.offset = QtCore.QPoint()
+        self.zoomLevel = 100
+
         # Set up state machine
         self.stateMachine = stateMachine.StateMachine(parent=self)
 
@@ -128,7 +131,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.buildConnections(newNode)
 
         if push:
-            self.stateMachine.addNode(fileIO.serializeNode(newNode), origin="mapper.py:addNode")
+            self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
 
         return newNode
 
@@ -208,6 +211,10 @@ class FreeFormMap(QtWidgets.QWidget):
             qp.drawPath(path)
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
+
+        qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
+        qp.drawEllipse(self.offset, 10, 10)
+
         qp.end()
 
     def createNewNode(self):
@@ -280,7 +287,7 @@ class FreeFormMap(QtWidgets.QWidget):
             serialized = []
             for edge in connectedEdges:
                 serialized.append(fileIO.serializeEdge(edge))
-            self.stateMachine.deleteNode(fileIO.serializeNode(self.selected), serialized)
+            self.stateMachine.deleteNode(fileIO.serializeNode(self, self.selected), serialized)
             self.deleteNode(self.selected)
 
     def rebuildNode(self, data):
@@ -350,6 +357,41 @@ class FreeFormMap(QtWidgets.QWidget):
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
                     self.selected = poly[2]
+        self.update()
+        if self.selected is None and event.button() == QtCore.Qt.LeftButton:
+            self.__mousePressPos = event.globalPos()
+            self.__mouseMovePos = event.globalPos()
+            self.startPos = event.globalPos()
+            self.freeDrag = False
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == QtCore.Qt.LeftButton:
+            # adjust offset from clicked point to origin of widget
+            currPos = self.mapToGlobal(self.pos())
+            globalPos = event.globalPos()
+            if (globalPos - self.startPos).manhattanLength() > 5 or self.freeDrag:
+                self.freeDrag = True
+                diff = globalPos - self.__mouseMovePos
+                delta = self.mapFromGlobal(currPos + diff)
+                self.offset += delta
+                for node in self.nodes.values():
+                    node.moveDelta(delta.x(), delta.y())
+                self.__mouseMovePos = globalPos
+        self.update()
+
+    def wheelEvent1(self, event):
+        # TODO: make zoom speed customizable
+        # TODO: fix this garbage
+        self.zoomLevel += event.angleDelta().y() / 15
+        x = self.zoomLevel
+        self.zoomLevel = max(10, min(self.zoomLevel, 500)) # Clamp zoom level
+        if self.zoomLevel == x:
+            s = (event.angleDelta().y() / 15) / 100
+            for node in self.nodes.values():
+                node.updateZoomLevel(self.zoomLevel)
+                x0 = ((node.position[0] - self.offset.x()) * s) + (self.offset.x() * s)
+                y0 = ((node.position[1] - self.offset.y()) * s) + (self.offset.y() * s)
+                node.moveDelta(x0, y0)
         self.update()
 
     def handleAction(self, action, origin=None):

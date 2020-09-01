@@ -21,12 +21,12 @@ class QNodeWidget(QtWidgets.QWidget):
             self.data = {}
 
         self.layout = QtWidgets.QVBoxLayout()
-        self.layout.setContentsMargins(QtCore.QMargins(3,3,3,3))
+        self.layout.setContentsMargins(QtCore.QMargins(5, 5, 5, 5))
 
         self.mainWidget = QtWidgets.QWidget(self)
         self.mainWidget.setLayout(self.layout)
 
-        self.mainWidget.setMinimumSize(100, 50)
+        self.mainWidget.resize(100, 50)
 
         self.center = QtCore.QPoint(0,0)
 
@@ -34,12 +34,12 @@ class QNodeWidget(QtWidgets.QWidget):
 
         self.styleSelected = """
             background-color: white;
-            border-radius: 20px
+            border-radius: 10%;
         """
 
         self.styleUnselected = """
             background-color: transparent;
-            border-radius: 20px
+            border-radius: 10%;
         """
 
         self.mainWidget.setStyleSheet(self.styleUnselected)
@@ -55,6 +55,8 @@ class QNodeWidget(QtWidgets.QWidget):
         self.label.setStyleSheet(f"background-color: {self.color}; color: black")
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
+
+        self.lFont = self.label.font()
 
         self.textEdit = QtWidgets.QLineEdit(self.name)
         self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
@@ -187,3 +189,18 @@ class QNodeWidget(QtWidgets.QWidget):
         self.center = QtCore.QPoint(self.position[0] + self.width()/2, self.position[1] + self.height()/2)
 
         self.update()
+
+    def moveDelta(self, x, y):
+        self.move(self.pos().x() + x, self.pos().y() + y)
+        self.position = [self.pos().x(), self.pos().y()]
+        self.center = QtCore.QPoint(self.position[0] + self.width() / 2, self.position[1] + self.height() / 2)
+
+    def updateZoomLevel(self, zoom):
+        zR = zoom / 100
+        self.resize(100 * zR, 50 * zR)
+        self.mainWidget.resize(100 * zR, 50 * zR)
+        x = 5 * zR
+        self.layout.setContentsMargins(QtCore.QMargins(x, x, x, x))
+        f = self.label.font()
+        f.setPointSize(max(1, self.lFont.pointSize() * zR))
+        self.label.setFont(f)

@@ -76,11 +76,16 @@ def untangleTree(node):
         globals()["nodeList"].append(node)
         return
 
-def serializeNode(node):
+def serializeNode(mapper, node):
+    if mapper is None:
+        offset = [0, 0]
+    else:
+        offset = [mapper.offset.x(), mapper.offset.y()]
+    actualPos = [node.position[0] - offset[0], node.position[1] - offset[1]]
     return {
         "id": node.id,
         "name": node.name,
-        "position": node.position,
+        "position": actualPos,
         "connections": node.connections,
         "data": node.data # TODO: cull unnecessary MindMap data
     }
@@ -94,11 +99,10 @@ def serializeEdge(edge):
 
 # Save a map object into a file
 def saveFile(mapperObject, fileName):
-    # TODO: possibly remove duplicate connections
     output = {"version": "0.0.1"}  # Version numbers currently unused
     nodes = []
     for node in mapperObject.nodes.values():
-        savedNode = serializeNode(node)
+        savedNode = serializeNode(mapperObject, node)
         nodes.append(savedNode)
     output["nodes"] = nodes
     edges = []

@@ -7,7 +7,6 @@ import shortcutDialog
 import fileIO
 
 # TODO: Make some error handling dialogs
-# TODO: Make Edge objects properly serialized and add them to the save/load routine
 # TODO: Add user settings
 # TODO: Editable shortcuts
 # TODO: implement proper translation and scaling
@@ -233,4 +232,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
