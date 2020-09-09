@@ -118,5 +118,49 @@ class QEdgeWidget():
     def destroy(self):
         self.lineEdit.setParent(None)
 
+    def generatePolys(self):
+        lines = []
+        polys = []
+        connectionPoints = [self.node1]
+        if "redirects" in self.data:
+            for redirect in self.data["redirects"]:
+                connectionPoints.append(self.parent.nodes[redirect])
+            connectionPoints.append(self.node2)
+            lines = [[connectionPoints[i], connectionPoints[i+1]] for i in range(len(connectionPoints)-1)]
+        else:
+            lines = [[self.node1, self.node2]]
+
+        for line in lines:
+            n1 = line[0]
+            m1 = line[1]
+            e1 = n1.position
+            e2 = m1.position
+
+            horPos = 0.5
+            vertPos = 0.5
+
+            x1 = e1[0] + n1.width() * horPos
+            y1 = e1[1] + n1.height() * vertPos
+            x2 = e2[0] + m1.width() * (1 - horPos)
+            y2 = e2[1] + m1.height() * (1 - vertPos)
+
+            #qp.drawLime(x1, y1, x2, y2)
+            poly = QtGui.QPolygonF([
+                QtCore.QPointF(x1 - 5, y1),
+                QtCore.QPointF(x1 + 5, y1),
+                QtCore.QPointF(x2 + 5, y2),
+                QtCore.QPointF(x2 - 5, y2),
+            ])
+            poly1 = QtGui.QPolygonF([
+                QtCore.QPointF(x1, y1 - 5),
+                QtCore.QPointF(x1, y1 + 5),
+                QtCore.QPointF(x2, y2 + 5),
+                QtCore.QPointF(x2, y2 - 5),
+            ])
+
+            test = poly.united(poly1)
+            polys.append([test, self])
+        return polys
+
     def update(self):
         pass

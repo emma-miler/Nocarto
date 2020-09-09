@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 import nodeDetailDialog
 import draggableWidget
 
-class QNodeWidget(draggableWidget.QDragWidget):
+class QRedirectWidget(draggableWidget.QDragWidget):
     def __init__(self, id: int, name: str, position: tuple or list, connections=None, data=None, parent=None):
         super().__init__(parent=parent)
 
@@ -27,7 +27,7 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.mainWidget = QtWidgets.QWidget(self)
         self.mainWidget.setLayout(self.layout)
 
-        self.mainWidget.resize(100, 50)
+        self.mainWidget.resize(25, 25)
 
         self.center = QtCore.QPoint(0,0)
 
@@ -35,36 +35,17 @@ class QNodeWidget(draggableWidget.QDragWidget):
 
         self.styleSelected = """
             background-color: white;
-            border-radius: 10%;
+            border-radius: 5px;
         """
 
         self.styleUnselected = """
-            background-color: transparent;
-            border-radius: 10%;
+            background-color: gray;
+            border-radius: 5px;
         """
 
         self.mainWidget.setStyleSheet(self.styleUnselected)
 
         self.isSelected = False
-
-        self.color = "gray"
-        if "color" in self.data:
-            self.color = self.data["color"]
-        
-        self.label = QtWidgets.QLabel()
-        self.label.setText(self.name)
-        self.label.setStyleSheet(f"background-color: {self.color}; color: black")
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.layout.addWidget(self.label)
-
-        self.lFont = self.label.font()
-
-        self.textEdit = QtWidgets.QLineEdit(self.name)
-        self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
-        self.textEdit.setAlignment(QtCore.Qt.AlignCenter)
-        self.textEdit.editingFinished.connect(self.updateName)
-        self.layout.addWidget(self.textEdit)
-        self.textEdit.hide()
 
         self.show()
 

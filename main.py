@@ -9,7 +9,7 @@ import fileIO
 # TODO: Make some error handling dialogs
 # TODO: Add user settings
 # TODO: Editable shortcuts
-# TODO: implement proper translation and scaling
+# TODO: implement proper scaling
 # TODO: Add grid snapping feature?
 
 class MainWindow(QMainWindow):

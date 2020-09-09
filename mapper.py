@@ -5,6 +5,7 @@ import nodeWidget, edgeWidget
 import stateMachine
 import fileIO
 import edgeDetailDialog
+import redirectWidget
 
 class OverlayWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -97,7 +98,7 @@ class FreeFormMap(QtWidgets.QWidget):
     
     def updateSelection(self, newSelection):
         if self.selected is not None:
-            if type(self.selected) == nodeWidget.QNodeWidget:
+            if type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == redirectWidget.QRedirectWidget:
                 self.selected.setSelected(False)
             elif type(self.selected) == edgeWidget.QEdgeWidget:
                 pass
@@ -126,7 +127,10 @@ class FreeFormMap(QtWidgets.QWidget):
 
         # Instantiate the node and update possible parents or add to roots list
         connectionList = connections if connections is not None else []
-        newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
+        if data is not None and "isRedirect" in data:
+            newNode = redirectWidget.QRedirectWidget(newId, name, position, connectionList, data, parent=self) 
+        else:
+            newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
         self.buildConnections(newNode)
 
@@ -172,43 +176,14 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 0), 15))
 
         for edge in self.edges:
-            n1 = edge.node1
-            m1 = edge.node2
-            e1 = n1.position
-            e2 = m1.position
-
-            horPos = 0.5
-            vertPos = 0.5
-
-            x1 = e1[0] + n1.width() * horPos
-            y1 = e1[1] + n1.height() * vertPos
-            x2 = e2[0] + m1.width() * (1 - horPos)
-            y2 = e2[1] + m1.height() * (1 - vertPos)
-
-            #qp.drawLime(x1, y1, x2, y2)
-            poly = QtGui.QPolygonF([
-                QtCore.QPointF(x1 - 5, y1),
-                QtCore.QPointF(x1 + 5, y1),
-                QtCore.QPointF(x2 + 5, y2),
-                QtCore.QPointF(x2 - 5, y2),
-            ])
-            poly1 = QtGui.QPolygonF([
-                QtCore.QPointF(x1, y1 - 5),
-                QtCore.QPointF(x1, y1 + 5),
-                QtCore.QPointF(x2, y2 + 5),
-                QtCore.QPointF(x2, y2 - 5),
-            ])
-
-            test = poly.united(poly1)
-            self.polies.append([poly, poly1, edge])
-
-            path = QtGui.QPainterPath()
-            color = QtGui.QColor(edge.color) if edge.color is not None else QtGui.QColor(128, 255, 128)
-            color = QtGui.QColor(255, 255, 255) if self.selected is edge else color
-            qp.setBrush(color)
-            path.setFillRule(QtCore.Qt.WindingFill)
-            path.addPolygon(test)
-            qp.drawPath(path)
+            for poly in edge.generatePolys():
+                path = QtGui.QPainterPath()
+                color = QtGui.QColor(edge.color) if edge.color is not None else QtGui.QColor(128, 255, 128)
+                color = QtGui.QColor(255, 255, 255) if self.selected is edge else color
+                qp.setBrush(color)
+                path.setFillRule(QtCore.Qt.WindingFill)
+                path.addPolygon(poly[0])
+                qp.drawPath(path)
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
 
@@ -373,10 +348,11 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.freeDrag = True
                 diff = globalPos - self.__mouseMovePos
                 delta = self.mapFromGlobal(currPos + diff)
-                self.offset += delta
+                self.offset += diff
                 for node in self.nodes.values():
-                    node.moveDelta(delta.x(), delta.y())
+                    node.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
+                print(delta)
         self.update()
 
     def wheelEvent1(self, event):
