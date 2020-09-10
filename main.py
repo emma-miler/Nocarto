@@ -30,16 +30,14 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        #map = fileIO.parseFile("test.mm")
+        #map = fileIO.openFile("dragTest.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.newWidget.setLayout(self.layout)
 
-
-
-        #self.mapper = mapper.FreeFormMap(map)
+        #self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
         self.mapper = mapper.FreeFormMap(parent=self)
         #self.mapper.setMinimumSize(1000, 1000)
 
@@ -63,6 +61,8 @@ class MainWindow(QMainWindow):
         self.debugBox.click()
 
         self.menuBar = self.menuBar()
+
+        self.shortcutList = []
 
         # File menu
         self.fileMenu = QtWidgets.QMenu("File")
@@ -111,6 +111,22 @@ class MainWindow(QMainWindow):
         self.redoAction.triggered.connect(self.redo)
         self.editMenu.addAction(self.redoAction)
 
+        self.editMenu.addSeparator()
+
+        # Create Redirect action
+        self.createRedirectAction = QtWidgets.QAction("Create Redirect", self)
+        self.createRedirectAction.setShortcut("Tab")
+        self.createRedirectAction.triggered.connect(self.mapperCreateRedirect)
+        self.editMenu.addAction(self.createRedirectAction)
+        self.shortcutList.append(self.createRedirectAction)
+
+        # Dissolve Redirect action
+        self.dissolveRedirectAction = QtWidgets.QAction("Create Redirect", self)
+        self.dissolveRedirectAction.setShortcut("Shift+Del")
+        self.dissolveRedirectAction.triggered.connect(self.mapperDissolveRedirect)
+        self.editMenu.addAction(self.dissolveRedirectAction)
+        self.shortcutList.append(self.dissolveRedirectAction)
+
 
         # Help menu
         self.helpMenu = QtWidgets.QMenu("Help")
@@ -120,8 +136,6 @@ class MainWindow(QMainWindow):
         self.shortcutAction.triggered.connect(self.showShortcutDialog)
         self.helpMenu.addAction(self.shortcutAction)
         self.menuBar.addAction(self.shortcutAction)
-
-        self.shortcutList = []
 
         # TODO: add some of these to the edit menu
 
@@ -140,11 +154,11 @@ class MainWindow(QMainWindow):
         self.shortcutList.append(self.editNode)
 
         # Delete node
-        self.deleteNode = QtWidgets.QAction("Delete Node", self)
-        self.deleteNode.setShortcut("Delete")
-        self.deleteNode.triggered.connect(self.mapperDeleteNode)
-        self.addAction(self.deleteNode)
-        self.shortcutList.append(self.deleteNode)
+        self.deleteSelectedAction = QtWidgets.QAction("Delete Selected", self)
+        self.deleteSelectedAction.setShortcut("Delete")
+        self.deleteSelectedAction.triggered.connect(self.mapperDeleteSelected)
+        self.addAction(self.deleteSelectedAction)
+        self.shortcutList.append(self.deleteSelectedAction)
 
     def openFile(self):
         options = QtWidgets.QFileDialog.Options()
@@ -199,8 +213,17 @@ class MainWindow(QMainWindow):
     def mapperEditNode(self):
         self.mapper.handleAction("editNode")
 
-    def mapperDeleteNode(self):
-        self.mapper.handleAction("deleteNode")
+    def mapperDeleteSelected(self):
+        self.mapper.handleAction("deleteSelected")
+
+    def mapperCreateRedirect(self):
+        self.mapper.handleAction("createRedirect")
+
+    def mapperDeleteRedirect(self):
+        self.mapper.handleAction("deleteRedirect")
+
+    def mapperDissolveRedirect(self):
+        self.mapper.handleAction("dissolveRedirect")
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event

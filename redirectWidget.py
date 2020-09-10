@@ -2,9 +2,10 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 import nodeDetailDialog
 import draggableWidget
+import edgeWidget
 
 class QRedirectWidget(draggableWidget.QDragWidget):
-    def __init__(self, id: int, name: str, position: tuple or list, connections=None, data=None, parent=None):
+    def __init__(self, id: int, name: str, position: tuple or list, parentEdge: int, data=None, parent=None):
         super().__init__(parent=parent)
 
         self.parent = parent
@@ -12,11 +13,11 @@ class QRedirectWidget(draggableWidget.QDragWidget):
         assert(type(id) == int)
         assert(type(name) == str)
         assert(type(position) == tuple or list)
-        assert(type(connections) == list or tuple or connections is None)
+        assert(type(parentEdge) == int)
         self.id = id
         self.name = name
         self.position = position
-        self.connections = connections
+        self.parentEdge = parentEdge
         self.data = data
         if data is None:
             self.data = {}
@@ -57,12 +58,6 @@ class QRedirectWidget(draggableWidget.QDragWidget):
             self.mainWidget.setStyleSheet(self.styleSelected)
         else:
             self.mainWidget.setStyleSheet(self.styleUnselected)
-
-
-    # Adds a connection to another node
-    def addConnection(self, other):
-        self.connections.append(other.id)
-        return self
 
     def applyChange(self, delta):
         if "name" in delta:

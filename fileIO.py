@@ -92,6 +92,7 @@ def serializeNode(mapper, node):
 
 def serializeEdge(edge):
     return {
+        "id": edge.id,
         "node1": edge.node1.id,
         "node2": edge.node2.id,
         "data": edge.data
@@ -99,14 +100,14 @@ def serializeEdge(edge):
 
 # Save a map object into a file
 def saveFile(mapperObject, fileName):
-    output = {"version": "0.0.1"}  # Version numbers currently unused
+    output = {"version": "0.1.0"}  # Version numbers currently unused
     nodes = []
     for node in mapperObject.nodes.values():
         savedNode = serializeNode(mapperObject, node)
         nodes.append(savedNode)
     output["nodes"] = nodes
     edges = []
-    for edge in mapperObject.edges:
+    for edge in mapperObject.edges.values():
         savedEdge = serializeEdge(edge)
         edges.append(savedEdge)
     output["edges"] = edges
@@ -121,6 +122,7 @@ def openFile(fileName):
     if "edges" not in data:
         data["edges"] = []
     return {
+        "version": data["version"],
         "nodes": data["nodes"],
         "edges": data["edges"]
     }

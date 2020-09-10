@@ -5,8 +5,9 @@ import edgeDetailDialog
 # TODO: add routing points for line, and maybe make it support beziers
 
 class QEdgeWidget():
-    def __init__(self, name, node1, node2, lineEdit: QtWidgets.QLineEdit, data=None, parent=None):
+    def __init__(self, id, name, node1, node2, lineEdit: QtWidgets.QLineEdit, data=None, parent=None):
         super().__init__()
+        self.id = id
         if data is None:
             data = {}
         self.name = name
@@ -158,8 +159,8 @@ class QEdgeWidget():
                 QtCore.QPointF(x2, y2 - 5),
             ])
 
-            test = poly.united(poly1)
-            polys.append([test, self])
+            united = poly.united(poly1)
+            polys.append([poly, poly1, self])
         return polys
 
     def update(self):

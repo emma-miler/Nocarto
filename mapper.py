@@ -1,4 +1,3 @@
-import random
 from PyQt5 import QtWidgets, QtCore, QtGui
 
 import nodeWidget, edgeWidget
@@ -6,48 +5,15 @@ import stateMachine
 import fileIO
 import edgeDetailDialog
 import redirectWidget
-
-class OverlayWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setMinimumSize(500, 500)
-
-        self.parent=parent
-
-        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents, True)
-
-        self.circleSize = 20
-        self.hcs = int(self.circleSize / 2)
-
-        self.graphicsView = QtWidgets.QGraphicsView(self)
-
-        self.scene = QtWidgets.QGraphicsScene(self)
-        self.button = QtWidgets.QPushButton("test123")
-
-        self.w = self.scene.addWidget(self.button)
-        self.w.setPos(100, 100)
-
-    def paintEvent(self, event):
-        qp = QtGui.QPainter()
-        qp.begin(self)
-        #qp.fillRect(0, 0, 1000, 1000, QtGui.QBrush(QtGui.QColor(0, 64, 0)))
-        qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-        qp.drawText(0, 50, f"Edges on screen: {str(len(self.parent.edges))}")
-        for nodeId in self.parent.nodes:
-            node = self.parent.nodes[nodeId]
-            pos = node.position
-            qp.drawEllipse(pos[0] - self.hcs,                   pos[1] + node.height()/2 - self.hcs,    self.circleSize,    self.circleSize)
-            qp.drawEllipse(pos[0] + node.width() - self.hcs,    pos[1] + node.height()/2 - self.hcs,    self.circleSize, self.circleSize)
-            qp.drawEllipse(pos[0] + node.width()/2 - self.hcs,  pos[1]- self.hcs,                       self.circleSize,    self.circleSize)
-            qp.drawEllipse(pos[0] + node.width()/2 - self.hcs,  pos[1] + node.height() - self.hcs,      self.circleSize, self.circleSize)
-        qp.end()
+import draggableWidget
+import tools
 
 class FreeFormMap(QtWidgets.QWidget):
     def __init__(self, map=None, mapType=None, parent=None):
         super().__init__(parent=parent)
         self.parent = parent
         self.nodes = {} # List of all nodes, with their id as the key
-        self.edges = [] # List of edges currently being drawn
+        self.edges = {} # List of edges currently being drawn
         self.mapNodes = map["nodes"] if map is not None else []
         self.mapEdges = map["edges"] if map is not None else []
 
@@ -58,7 +24,7 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.root = None # Holds root node in a mindmap
 
-        self.polies = []
+        self.polys = []
 
         self.offset = QtCore.QPoint()
         self.zoomLevel = 100
@@ -82,14 +48,17 @@ class FreeFormMap(QtWidgets.QWidget):
                 for node in self.mapNodes:
                     self.addNode(node["name"], node["position"], node["connections"], data=node["data"], id=node["id"], push=False)
                 # Loops over all edges in the map and applies their data to the correct edges in the mapper object
-                for mapedge in self.mapEdges:
-                    for edge in self.edges:
-                        if [self.nodes[mapedge["node1"]], self.nodes[mapedge["node2"]]] == edge: # Convert from id to nodeWidget and check equality
-                            edge.applyChange({"data": mapedge["data"]})
+                for edge in self.mapEdges:
+                    id = edge["id"] if "id" in edge else tools.generateId(self)
+                    data = edge["data"] if "data" in edge else None
+                    self.addConnection(self.nodes[edge["node1"]], self.nodes[edge["node2"]], id=id, data=data)
 
         if map is None:
-            self.root = self.addNode("test", [300, 300], None)
-            self.root1 = self.addNode("test2", [300, 400], [self.root.id])
+            id1 = tools.generateId(self)
+            id2 = tools.generateId(self)
+            self.root = self.addNode(str(id1), [300, 300], None, id=id1)
+            self.root1 = self.addNode(str(id2), [300, 400], [self.root.id], id=id2)
+            self.addConnection(self.root, self.root1)
 
         #self.overlay = OverlayWidget(self)
 
@@ -107,59 +76,41 @@ class FreeFormMap(QtWidgets.QWidget):
         self.selected = newSelection
 
     def addNode(self, name, position, connections, data=None, id=None, push=True):
-        # Generate a random id
         if id is None:
-            newId = random.randint(0, 65535)
-
-            # Check if it is unique, if not, generate a new one and repeat until unique is found
-            idIsUnique = True
-            for node in self.nodes.values():
-                if node.id == newId:
-                    idIsUnique = False
-            while idIsUnique is False:
-                newId = random.randint(0, 65535)
-                for node in self.nodes.values():
-                    if node.id == newId:
-                        idIsUnique = False
-
+            newId = tools.generateId(self)
         else:
             newId = id
 
         # Instantiate the node and update possible parents or add to roots list
         connectionList = connections if connections is not None else []
-        if data is not None and "isRedirect" in data:
-            newNode = redirectWidget.QRedirectWidget(newId, name, position, connectionList, data, parent=self) 
+        if data is not None and "edgeId" in data:
+            newNode = redirectWidget.QRedirectWidget(newId, name, position, data["edgeId"], data, parent=self)
         else:
             newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
-        self.buildConnections(newNode)
 
         if push:
             self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
 
         return newNode
 
-    def buildConnections(self, node):
-        # Creates connections for existing node
-        connections = node.connections
-        if connections is not None:
-            for connection in connections:
-                if connection in self.nodes:
-                    self.addConnection(node, self.nodes[connection])
+    def addConnection(self, node1, node2, id=None, data=None):
+        if id is None:
+            newId = tools.generateId(self)
+        else:
+            newId = id
 
-    def addConnection(self, node1, node2):
-        for edge in self.edges:
+        for edge in self.edges.values():
             if edge == (node1, node2):
                 return
+
         node1.connections.append(node2.id)
         node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
         node2.connections = list(dict.fromkeys(node2.connections))
         lineEdit = QtWidgets.QLineEdit(self)
-        edge = edgeWidget.QEdgeWidget("", node1, node2, lineEdit, parent=self)
-        #self.graphicsScene.addItem(edge)
-        #self.graphicsScene.addWidget(widget)
-        self.edges.append(edge)
+        edge = edgeWidget.QEdgeWidget(newId, "", node1, node2, lineEdit, data=data, parent=self)
+        self.edges[newId] = edge
         self.update()
     
     def paintEvent(self, event):
@@ -168,21 +119,22 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
         qp.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
 
-        self.polies = []
+        self.polys = []
 
         if self.tempLine is not None:
             qp.drawLine(self.tempLine[0], self.tempLine[1])
 
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 0), 15))
 
-        for edge in self.edges:
+        for edge in self.edges.values():
             for poly in edge.generatePolys():
                 path = QtGui.QPainterPath()
                 color = QtGui.QColor(edge.color) if edge.color is not None else QtGui.QColor(128, 255, 128)
                 color = QtGui.QColor(255, 255, 255) if self.selected is edge else color
                 qp.setBrush(color)
                 path.setFillRule(QtCore.Qt.WindingFill)
-                path.addPolygon(poly[0])
+                path.addPolygon(poly[0].united(poly[1]))
+                self.polys.append(poly)
                 qp.drawPath(path)
 
         qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
@@ -237,17 +189,10 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def deleteNode(self, node):
-        res = list(filter(lambda filterEdge: filterEdge.node1 != node and filterEdge.node2 != node, self.edges))
-        other = list(filter(lambda filterEdge: filterEdge.node1 == node or filterEdge.node2 == node, self.edges))
-        for edge in other:
-            edge.destroy()
-            del edge
-        self.edges = res
         self.nodes.pop(node.id)
         node.setParent(None)
         node.deleteLater()
         self.updateSelection(None)
-        self.update()
     
     def deleteCurrentNode(self):
         if self.selected is not None:
@@ -258,16 +203,46 @@ class FreeFormMap(QtWidgets.QWidget):
                         connections.append(node.id)
             self.selected.connections = connections
             # When deleting a node, we save its serialized data to the state machine so we can rebuild it later
-            connectedEdges = list(filter(lambda filterEdge: filterEdge.node1 == node or filterEdge.node2 == node, self.edges))
+            newEdges = {}
+            deletedEdges = {}
+            for key, edge in self.edges.items():
+                if edge.node1 != self.selected and edge.node2 != self.selected:
+                    newEdges[key] = edge
+                else:
+                    deletedEdges[key] = edge
+            self.edges = newEdges
             serialized = []
-            for edge in connectedEdges:
+            for edge in deletedEdges.values():
                 serialized.append(fileIO.serializeEdge(edge))
-            self.stateMachine.deleteNode(fileIO.serializeNode(self, self.selected), serialized)
+            self.stateMachine.deleteNode(fileIO.serializeNode(self, self.selected), serialized, origin="mapper.py:deleteCurrentNode")
+            for edge in deletedEdges.values():
+                edge.destroy()
+                del edge
             self.deleteNode(self.selected)
 
-    def rebuildNode(self, data):
-        self.addNode(data["name"], data["position"], data["connections"], data=data["data"], id=data["id"], push=False)
-        self.update()
+    def deleteConnection(self, edge):
+        edge.node1.connections = [connection for connection in edge.node1.connections if connection != edge.node2.id]
+        edge.node2.connections = [connection for connection in edge.node2.connections if connection != edge.node1.id]
+        self.edges.pop(edge.id)
+        self.stateMachine.deleteEdge(fileIO.serializeEdge(edge), origin="mapper.py:deleteConnection")
+        edge.destroy()
+        del edge
+
+    def dissolveRedirect(self, redirect):
+        # TODO: add proper state machine atoms for redirects
+        edge = self.edges[redirect.parentEdge]
+        edge.data["redirects"] = [x for x in edge.data["redirects"] if x != redirect.id]
+        self.deleteNode(redirect)
+
+    def rebuildNode(self, data, edges=None):
+        position = [
+            data["position"][0] + self.offset.x(),
+            data["position"][1] + self.offset.y()
+        ]
+        self.addNode(data["name"], position, data["connections"], data=data["data"], id=data["id"], push=False)
+        if edges is not None:
+            for edge in edges:
+                self.addConnection(self.nodes[edge["node1"]], self.nodes[edge["node2"]], edge["id"], edge["data"])
 
     def undo(self):
         atom = self.stateMachine.undo()
@@ -278,13 +253,15 @@ class FreeFormMap(QtWidgets.QWidget):
             elif atom["type"] == "addNode":
                 self.deleteNode(self.nodes[atom["data"]["id"]])
             elif atom["type"] == "deleteNode":
-                self.rebuildNode(atom["data"])
+                edges = atom["edges"] if "edges" in atom else None
+                self.rebuildNode(atom["data"], edges)
             elif atom["type"] == "editEdge":
                 atom["edge"].applyChange(atom["old"])
             elif atom["type"] == "addEdge":
                 self.deleteEdge(atom["old"])
             elif atom["type"] == "deleteEdge":
-                self.rebuildEdge(atom["old"])
+                data = atom["edge"]["data"] if "data" in atom["edge"] else None
+                self.addConnection(self.nodes[atom["edge"]["node1"]], self.nodes[atom["edge"]["node2"]], id=atom["edge"]["id"], data=data)
             else:
                 raise NotImplementedError("Atom type not yet implemented")
             self.update()
@@ -311,24 +288,23 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def mouseDoubleClickEvent(self, event):
-        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y() - 15)
-        for poly in self.polies:
+        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y())
+        for poly in self.polys:
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
                     dialog = edgeDetailDialog.QEdgeDetailDialog(poly[2])
                     dialog.exec()
                     if dialog.apply:
-                        self.stateMachine.editEdge(poly[2], dialog.edgeDeltaOld, dialog.edgeDeltaNew,
-                                                          origin="edgeWidget.py:mouseDoubleClickEvent")
+                        self.stateMachine.editEdge(poly[2], dialog.edgeDeltaOld, dialog.edgeDeltaNew, origin="edgeWidget.py:mouseDoubleClickEvent")
                         poly[2].applyChange(dialog.edgeDeltaNew)
                     self.update()
 
     def mousePressEvent(self, event):
-        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y() - 15)
+        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y())
         self.setFocus()
         self.setEditNode(False)
         self.updateSelection(None)
-        for poly in self.polies:
+        for poly in self.polys:
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
                     self.selected = poly[2]
@@ -340,7 +316,7 @@ class FreeFormMap(QtWidgets.QWidget):
             self.freeDrag = False
 
     def mouseMoveEvent(self, event):
-        if event.buttons() == QtCore.Qt.LeftButton:
+        if event.buttons() == QtCore.Qt.LeftButton and self.selected is None:
             # adjust offset from clicked point to origin of widget
             currPos = self.mapToGlobal(self.pos())
             globalPos = event.globalPos()
@@ -352,7 +328,6 @@ class FreeFormMap(QtWidgets.QWidget):
                 for node in self.nodes.values():
                     node.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
-                print(delta)
         self.update()
 
     def wheelEvent1(self, event):
@@ -378,8 +353,20 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.setEditNode(True)
             elif action == "deleteNode":
                 self.deleteCurrentNode()
+            elif action == "deleteSelected":
+                if type(self.selected) == nodeWidget.QNodeWidget:
+                    self.deleteCurrentNode()
+                elif type(self.selected) == redirectWidget.QRedirectWidget:
+                    self.deleteConnection(self.edges[self.selected.parentEdge])
+                    self.deleteCurrentNode()
+                elif type(self.selected) == edgeWidget.QEdgeWidget:
+                    self.deleteConnection(self.selected)
+            elif action == "dissolveRedirect":
+                if type(self.selected) == redirectWidget.QRedirectWidget:
+                    self.dissolveRedirect(self.selected)
+            self.update()
 
     def update(self):
-        for edge in self.edges:
+        for edge in self.edges.values():
             edge.updatePositions()
         super().update()
