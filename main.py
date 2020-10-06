@@ -30,15 +30,15 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        #map = fileIO.openFile("dragTest.ncm")
+        map = fileIO.openFile("test123.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.newWidget.setLayout(self.layout)
 
-        #self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
-        self.mapper = mapper.FreeFormMap(parent=self)
+        self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
+        #self.mapper = mapper.FreeFormMap(parent=self)
         #self.mapper.setMinimumSize(1000, 1000)
 
         self.setCentralWidget(self.mapper)
@@ -72,6 +72,12 @@ class MainWindow(QMainWindow):
         self.openAction.setShortcut("Ctrl+O")
         self.openAction.triggered.connect(self.openFile)
         self.fileMenu.addAction(self.openAction)
+
+        # Reload action
+        self.reloadAction = QtWidgets.QAction("Reload", self)
+        self.reloadAction.setShortcut("Ctrl+R")
+        self.reloadAction.triggered.connect(self.reloadFile)
+        self.fileMenu.addAction(self.reloadAction)
 
         self.fileMenu.addSeparator()
 
@@ -195,7 +201,15 @@ class MainWindow(QMainWindow):
         if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
             fileIO.saveFile(self.mapper, dialog.selectedFiles()[0])
             self.savedFileName = dialog.selectedFiles()[0]
-    
+
+    def reloadFile(self):
+        if self.savedFileName is not None:
+            newMap = fileIO.openFile(self.savedFileName)  # Generate a nodelist from the file
+            self.deleteMapper()  # Remove the current map widget
+            self.mapper = mapper.FreeFormMap(newMap, "freemap")  # Create a new map widget and set it as the central widget
+            self.setCentralWidget(self.mapper)
+            self.setMapperAA(self.debugBox.isChecked())
+
     def deleteMapper(self):
         for node in self.mapper.nodes.values():
             node.setParent(None)

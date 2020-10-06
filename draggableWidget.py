@@ -57,15 +57,22 @@ class QDragWidget(QtWidgets.QWidget):
             y = event.windowPos().y()
             found = None
             for node in self.parent.nodes.values():
-                if node.position[0] < x < node.position[0] + node.width():
-                    if node.position[1] < y < node.position[1] + node.height():
+                if node.widgetPosition[0] < x < node.widgetPosition[0] + node.width():
+                    if node.widgetPosition[1] < y < node.widgetPositionA[1] + node.height():
                         found = node
             if found is not None:
                 self.parent.addConnection(self, found)
 
         elif self.dragLeft:
             deltaOld = {"position": self.startMapperPos}
-            deltaNew = {"position": self.position}
+            #deltaNew = {"position": self.position}
+            x = [
+                self.position[0] * self.parent.zoomLevel,
+                self.position[1] * self.parent.zoomLevel,
+            ]
+            deltaNew = {"position": [self.position[0], self.position[1]]}
+            self.position = deltaNew["position"]
+            print(deltaNew["position"], "     ", self.position)
             self.parent.stateMachine.editNode(self.id, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
 
         if self.__mousePressPos is not None:

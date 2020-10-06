@@ -134,8 +134,8 @@ class QEdgeWidget():
         for line in lines:
             n1 = line[0]
             m1 = line[1]
-            e1 = n1.position
-            e2 = m1.position
+            e1 = n1.widgetPosition
+            e2 = m1.widgetPosition
 
             horPos = 0.5
             vertPos = 0.5

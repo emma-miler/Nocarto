@@ -81,11 +81,10 @@ def serializeNode(mapper, node):
         offset = [0, 0]
     else:
         offset = [mapper.offset.x(), mapper.offset.y()]
-    actualPos = [node.position[0] - offset[0], node.position[1] - offset[1]]
     return {
         "id": node.id,
         "name": node.name,
-        "position": actualPos,
+        "position": node.position,
         "connections": node.connections,
         "data": node.data # TODO: cull unnecessary MindMap data
     }

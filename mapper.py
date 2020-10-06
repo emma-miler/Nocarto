@@ -6,6 +6,7 @@ import fileIO
 import edgeDetailDialog
 import redirectWidget
 import draggableWidget
+import anchor
 import tools
 
 class FreeFormMap(QtWidgets.QWidget):
@@ -27,10 +28,12 @@ class FreeFormMap(QtWidgets.QWidget):
         self.polys = []
 
         self.offset = QtCore.QPoint()
-        self.zoomLevel = 100
+        self.zoomLevel = 1
 
         # Set up state machine
         self.stateMachine = stateMachine.StateMachine(parent=self)
+
+        self.anchor = anchor.QAnchorWidget(parent=self)
 
         if mapType == "mindmap":
             if map is not None:
@@ -327,22 +330,31 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.offset += diff
                 for node in self.nodes.values():
                     node.moveDelta(diff.x(), diff.y())
+                self.anchor.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
         self.update()
 
-    def wheelEvent1(self, event):
+    def wheelEvent(self, event):
         # TODO: make zoom speed customizable
         # TODO: fix this garbage
-        self.zoomLevel += event.angleDelta().y() / 15
+        localPos = event.pos()
+        print(localPos)
+        self.zoomLevel += event.angleDelta().y() / 1500
+        print(self.zoomLevel)
         x = self.zoomLevel
-        self.zoomLevel = max(10, min(self.zoomLevel, 500)) # Clamp zoom level
+        self.zoomLevel = max(0, min(self.zoomLevel, 10)) # Clamp zoom level
         if self.zoomLevel == x:
-            s = (event.angleDelta().y() / 15) / 100
+            s = (event.angleDelta().y() / 1500)
             for node in self.nodes.values():
-                node.updateZoomLevel(self.zoomLevel)
-                x0 = ((node.position[0] - self.offset.x()) * s) + (self.offset.x() * s)
-                y0 = ((node.position[1] - self.offset.y()) * s) + (self.offset.y() * s)
+                #node.updateZoomLevel(self.zoomLevel)
+                x0 = (node.widgetPosition[0] - localPos.x()) * s
+                y0 = (node.widgetPosition[1] - localPos.y()) * s
                 node.moveDelta(x0, y0)
+                node.update()
+            x0 = (self.anchor.widgetPosition[0] - localPos.x()) * s
+            y0 = (self.anchor.widgetPosition[1] - localPos.y()) * s
+            self.anchor.moveDelta(x0, y0)
+            self.anchor.update()
         self.update()
 
     def handleAction(self, action, origin=None):
@@ -364,6 +376,8 @@ class FreeFormMap(QtWidgets.QWidget):
             elif action == "dissolveRedirect":
                 if type(self.selected) == redirectWidget.QRedirectWidget:
                     self.dissolveRedirect(self.selected)
+            else:
+                raise NotImplementedError(f"Action {action} is not yet implemented.")
             self.update()
 
     def update(self):

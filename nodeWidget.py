@@ -16,6 +16,7 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.id = id
         self.name = name
         self.position = position
+        self.widgetPosition = position
         self.connections = connections
         self.data = data
         if data is None:
@@ -27,7 +28,7 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.mainWidget = QtWidgets.QWidget(self)
         self.mainWidget.setLayout(self.layout)
 
-        self.mainWidget.resize(100, 50)
+        self.mainWidget.resize(100, 125)
 
         self.center = QtCore.QPoint(0,0)
 
@@ -57,6 +58,10 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
+        self.coordLabel = QtWidgets.QLabel()
+        self.coordLabel.setStyleSheet(f"background-color: {self.color}; color: black")
+        self.layout.addWidget(self.coordLabel)
+
         self.lFont = self.label.font()
 
         self.textEdit = QtWidgets.QLineEdit(self.name)
@@ -65,6 +70,8 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.textEdit.editingFinished.connect(self.updateName)
         self.layout.addWidget(self.textEdit)
         self.textEdit.hide()
+
+        self.update()
 
         self.show()
 
@@ -76,6 +83,7 @@ class QNodeWidget(draggableWidget.QDragWidget):
             self.mainWidget.setStyleSheet(self.styleSelected)
         else:
             self.mainWidget.setStyleSheet(self.styleUnselected)
+        self.update()
 
 
     # Adds a connection to another node
@@ -110,12 +118,20 @@ class QNodeWidget(draggableWidget.QDragWidget):
     # Moves the node to a new location and updates
     def moveNode(self, x, y):
         self.move(x, y)
-        self.position = [x,y]
-        self.center = QtCore.QPoint(self.position[0] + self.width()/2, self.position[1] + self.height()/2)
+        self.position = [x - self.parent.offset.x(), y - self.parent.offset.y()]
+        self.widgetPosition = [x,y]
+        self.center = QtCore.QPointF(self.widgetPosition[0] + self.width()/2, self.widgetPosition[1] + self.height()/2)
 
         self.update()
 
     def moveDelta(self, x, y):
         self.move(self.pos().x() + x, self.pos().y() + y)
-        self.position = [self.pos().x(), self.pos().y()]
-        self.center = QtCore.QPoint(self.position[0] + self.width() / 2, self.position[1] + self.height() / 2)
+        self.widgetPosition = [self.pos().x(), self.pos().y()]
+        self.center = QtCore.QPoint(self.widgetPosition[0] + self.width() / 2, self.widgetPosition[1] + self.height() / 2)
+
+    def update(self):
+        try:
+            self.coordLabel.setText(str(self.position) + "\n" + str(self.widgetPosition) + "\n" + str(test))
+        except:
+            pass
+        super().update()

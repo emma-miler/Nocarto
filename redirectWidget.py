@@ -17,6 +17,7 @@ class QRedirectWidget(draggableWidget.QDragWidget):
         self.id = id
         self.name = name
         self.position = position
+        self.widgetPosition = position
         self.parentEdge = parentEdge
         self.data = data
         if data is None:
@@ -86,12 +87,13 @@ class QRedirectWidget(draggableWidget.QDragWidget):
     # Moves the node to a new location and updates
     def moveNode(self, x, y):
         self.move(x, y)
-        self.position = [x,y]
+        self.position = [x - self.parent.offset.x(), y - self.parent.offset.y()]
+        self.widgetPosition = [x, y]
         self.center = QtCore.QPoint(self.position[0] + self.width()/2, self.position[1] + self.height()/2)
 
         self.update()
 
     def moveDelta(self, x, y):
         self.move(self.pos().x() + x, self.pos().y() + y)
-        self.position = [self.pos().x(), self.pos().y()]
+        self.widgetPosition = [self.pos().x(), self.pos().y()]
         self.center = QtCore.QPoint(self.position[0] + self.width() / 2, self.position[1] + self.height() / 2)
