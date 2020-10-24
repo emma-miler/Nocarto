@@ -71,6 +71,8 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.layout.addWidget(self.textEdit)
         self.textEdit.hide()
 
+        self.testVar = [0,0]
+
         self.update()
 
         self.show()
@@ -118,7 +120,10 @@ class QNodeWidget(draggableWidget.QDragWidget):
     # Moves the node to a new location and updates
     def moveNode(self, x, y):
         self.move(x, y)
-        self.position = [x - self.parent.offset.x(), y - self.parent.offset.y()]
+        self.position = [
+            (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+            (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
+        ]
         self.widgetPosition = [x,y]
         self.center = QtCore.QPointF(self.widgetPosition[0] + self.width()/2, self.widgetPosition[1] + self.height()/2)
 
@@ -130,8 +135,14 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.center = QtCore.QPoint(self.widgetPosition[0] + self.width() / 2, self.widgetPosition[1] + self.height() / 2)
 
     def update(self):
-        try:
-            self.coordLabel.setText(str(self.position) + "\n" + str(self.widgetPosition) + "\n" + str(test))
-        except:
-            pass
+        relativeToZero = [
+            self.widgetPosition[0] - self.parent.anchor.widgetPosition[0],
+            self.widgetPosition[1] - self.parent.anchor.widgetPosition[1],
+        ]
+        scaled = [
+            int(relativeToZero[0] / self.parent.zoomLevel),
+            int(relativeToZero[1] / self.parent.zoomLevel),
+        ]
+        if self.coordLabel is not None:
+            self.coordLabel.setText(str(self.position) + "\n" + str(self.widgetPosition) + "\n" + str(relativeToZero) + "\n" + str(scaled))
         super().update()

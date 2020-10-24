@@ -8,6 +8,8 @@ class QDragWidget(QtWidgets.QWidget):
 
         self.parent = parent
 
+        self.coordLabel = None
+
     def mousePressEvent(self, event):
         self.__mousePressPos = None
         self.__mouseMovePos = None
@@ -58,7 +60,7 @@ class QDragWidget(QtWidgets.QWidget):
             found = None
             for node in self.parent.nodes.values():
                 if node.widgetPosition[0] < x < node.widgetPosition[0] + node.width():
-                    if node.widgetPosition[1] < y < node.widgetPositionA[1] + node.height():
+                    if node.widgetPosition[1] < y < node.widgetPosition[1] + node.height():
                         found = node
             if found is not None:
                 self.parent.addConnection(self, found)

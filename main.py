@@ -17,9 +17,7 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
 
-        self.parent=parent
-
-        #self.setupUi()
+        self.parent = parent
 
         self.zoomLevel = 100
         self.screenOffset = [0, 0]
@@ -30,22 +28,23 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        map = fileIO.openFile("test123.ncm")
+        map = fileIO.openFile("test2.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: #223; color: #dde")
         self.newWidget.setLayout(self.layout)
 
         self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
-        #self.mapper = mapper.FreeFormMap(parent=self)
-        #self.mapper.setMinimumSize(1000, 1000)
+        # self.mapper = mapper.FreeFormMap(parent=self)
+        # self.mapper.setMinimumSize(1000, 1000)
 
         self.setCentralWidget(self.mapper)
         self.newWidget.setStyleSheet("background-color: blue")
 
-        #self.layout.addWidget(self.mapper)
-        #self.layout.addWidget(self.listView)
+        # self.layout.addWidget(self.mapper)
+        # self.layout.addWidget(self.listView)
 
         # Setting up statusbar
         self.statusBar = QtWidgets.QStatusBar(parent=self)

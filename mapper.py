@@ -122,6 +122,9 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.setRenderHint(QtGui.QPainter.Antialiasing, self.enableAA)
         qp.setPen(QtGui.QPen(QtGui.QColor(128, 255, 128), 10))
 
+        for node in self.nodes.values():
+            node.update()
+
         self.polys = []
 
         if self.tempLine is not None:
@@ -140,10 +143,11 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.polys.append(poly)
                 qp.drawPath(path)
 
-        qp.drawText(0,50, f"Edges on screen: {str(len(self.edges))}")
-
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
         qp.drawEllipse(self.offset, 10, 10)
+
+        qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 10))
+        qp.drawText(1500, 100, f"Zoom level: {self.zoomLevel}")
 
         qp.end()
 
@@ -335,27 +339,16 @@ class FreeFormMap(QtWidgets.QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        # TODO: make zoom speed customizable
-        # TODO: fix this garbage
-        localPos = event.pos()
-        print(localPos)
-        self.zoomLevel += event.angleDelta().y() / 1500
-        print(self.zoomLevel)
-        x = self.zoomLevel
-        self.zoomLevel = max(0, min(self.zoomLevel, 10)) # Clamp zoom level
-        if self.zoomLevel == x:
-            s = (event.angleDelta().y() / 1500)
+        if 3 > self.zoomLevel + (event.angleDelta().y() / 1500) > 0.1:
+            self.zoomLevel += event.angleDelta().y() / 1500
+            s = event.angleDelta().y() / 1500
             for node in self.nodes.values():
                 #node.updateZoomLevel(self.zoomLevel)
-                x0 = (node.widgetPosition[0] - localPos.x()) * s
-                y0 = (node.widgetPosition[1] - localPos.y()) * s
+                x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * s
+                y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * s
                 node.moveDelta(x0, y0)
                 node.update()
-            x0 = (self.anchor.widgetPosition[0] - localPos.x()) * s
-            y0 = (self.anchor.widgetPosition[1] - localPos.y()) * s
-            self.anchor.moveDelta(x0, y0)
-            self.anchor.update()
-        self.update()
+            self.update()
 
     def handleAction(self, action, origin=None):
         if not self.inEditMode:
