@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 # Action types:
+# Name          Parameters                      Description
 # addNode       (node, data)                    new node created
 # deleteNode    (data)                          node deleted
 # editNode      (node, oldData, newData)        node's data edited

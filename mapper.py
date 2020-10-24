@@ -4,8 +4,6 @@ import nodeWidget, edgeWidget
 import stateMachine
 import fileIO
 import edgeDetailDialog
-import redirectWidget
-import draggableWidget
 import anchor
 import tools
 
@@ -67,55 +65,7 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.snapMode = False
         self.tempLine = None
-    
-    def updateSelection(self, newSelection):
-        if self.selected is not None:
-            if type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == redirectWidget.QRedirectWidget:
-                self.selected.setSelected(False)
-            elif type(self.selected) == edgeWidget.QEdgeWidget:
-                pass
-        if newSelection is not None:
-            newSelection.setSelected(True)
-        self.selected = newSelection
 
-    def addNode(self, name, position, connections, data=None, id=None, push=True):
-        if id is None:
-            newId = tools.generateId(self)
-        else:
-            newId = id
-
-        # Instantiate the node and update possible parents or add to roots list
-        connectionList = connections if connections is not None else []
-        if data is not None and "edgeId" in data:
-            newNode = redirectWidget.QRedirectWidget(newId, name, position, data["edgeId"], data, parent=self)
-        else:
-            newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
-        self.nodes[newId] = newNode
-
-        if push:
-            self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
-
-        return newNode
-
-    def addConnection(self, node1, node2, id=None, data=None):
-        if id is None:
-            newId = tools.generateId(self)
-        else:
-            newId = id
-
-        for edge in self.edges.values():
-            if edge == (node1, node2):
-                return
-
-        node1.connections.append(node2.id)
-        node1.connections = list(dict.fromkeys(node1.connections))
-        node2.connections.append(node1.id)
-        node2.connections = list(dict.fromkeys(node2.connections))
-        lineEdit = QtWidgets.QLineEdit(self)
-        edge = edgeWidget.QEdgeWidget(newId, "", node1, node2, lineEdit, data=data, parent=self)
-        self.edges[newId] = edge
-        self.update()
-    
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)
@@ -124,6 +74,8 @@ class FreeFormMap(QtWidgets.QWidget):
 
         for node in self.nodes.values():
             node.update()
+        for edge in self.edges.values():
+            edge.updatePositions()
 
         self.polys = []
 
@@ -151,10 +103,64 @@ class FreeFormMap(QtWidgets.QWidget):
 
         qp.end()
 
+    def updateSelection(self, newSelection):
+        if self.selected is not None:
+            if type(self.selected) == nodeWidget.QNodeWidget:
+                self.selected.setSelected(False)
+            elif type(self.selected) == edgeWidget.QEdgeWidget:
+                pass
+        if newSelection is not None:
+            newSelection.setSelected(True)
+        self.selected = newSelection
+
+    def addNode(self, name, position, connections, data=None, id=None, push=True):
+        if id is None:
+            newId = tools.generateId(self)
+        else:
+            newId = id
+
+        # Instantiate the node and update possible parents or add to roots list
+        connectionList = connections if connections is not None else []
+        newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
+        self.nodes[newId] = newNode
+        for connection in connectionList:
+            continue
+            #self.addConnection(newNode, connection)
+
+        if push:
+            self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
+
+        return newNode
+
+    def addConnection(self, node1, node2, id=None, data=None):
+        if id is None:
+            newId = tools.generateId(self)
+        else:
+            newId = id
+
+        for edge in self.edges.values():
+            if edge == (node1, node2):
+                return
+
+        node1.connections.append(node2.id)
+        node1.connections = list(dict.fromkeys(node1.connections))
+        node2.connections.append(node1.id)
+        node2.connections = list(dict.fromkeys(node2.connections))
+        lineEdit = QtWidgets.QLineEdit(self)
+        edge = edgeWidget.QEdgeWidget(newId, "", node1, node2, lineEdit, data=data, parent=self)
+        self.edges[newId] = edge
+        self.update()
+
     def createNewNode(self):
-        connection = [] if self.selected is None else [self.selected.id]
+        connection = []
         # noinspection PyUnresolvedReferences
-        pos = [300, 300] if self.selected is None else [self.selected.position[0], self.selected.position[1] + 150]
+        if self.selected is None:
+            pos = [300, 300]
+        elif type(self.selected) == nodeWidget.QNodeWidget:
+            pos = [self.selected.widgetPosition[0], self.selected.widgetPosition[1] + 150]
+            connection.append(self.selected)
+        elif type(self.selected) == edgeWidget.QEdgeWidget:
+            pos = [ self.selected.lineEdit.pos().x() + self.offset.x(), self.selected.lineEdit.pos().y() + self.offset.y() ]
         self.addNode("", pos, connection)
 
     def setEditNode(self, edit):
@@ -295,7 +301,7 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def mouseDoubleClickEvent(self, event):
-        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y())
+        localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
         for poly in self.polys:
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
@@ -307,7 +313,7 @@ class FreeFormMap(QtWidgets.QWidget):
                     self.update()
 
     def mousePressEvent(self, event):
-        localPos = QtCore.QPoint(event.windowPos().x(), event.windowPos().y())
+        localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
         self.setFocus()
         self.setEditNode(False)
         self.updateSelection(None)
@@ -351,7 +357,7 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def handleAction(self, action, origin=None):
-        if not self.inEditMode:
+        if not self.inEditMode and self.hasFocus():
             if action == "createNode":
                 self.createNewNode()
             elif action == "editNode":
@@ -361,14 +367,8 @@ class FreeFormMap(QtWidgets.QWidget):
             elif action == "deleteSelected":
                 if type(self.selected) == nodeWidget.QNodeWidget:
                     self.deleteCurrentNode()
-                elif type(self.selected) == redirectWidget.QRedirectWidget:
-                    self.deleteConnection(self.edges[self.selected.parentEdge])
-                    self.deleteCurrentNode()
                 elif type(self.selected) == edgeWidget.QEdgeWidget:
                     self.deleteConnection(self.selected)
-            elif action == "dissolveRedirect":
-                if type(self.selected) == redirectWidget.QRedirectWidget:
-                    self.dissolveRedirect(self.selected)
             else:
                 raise NotImplementedError(f"Action {action} is not yet implemented.")
             self.update()

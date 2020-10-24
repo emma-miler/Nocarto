@@ -17,38 +17,27 @@ class QEdgeWidget():
         self.data = data
         self.parent = parent
 
+        if "name" in self.data:
+            self.name = self.data["name"]
+
         self.lineEdit.setStyleSheet("background-color: rgb(255, 255, 173); color: black; border: none")
         self.lineEdit.setAlignment(QtCore.Qt.AlignCenter)
+
         if self.name == "":
             self.lineEdit.hide()
+        else:
+            self.lineEdit.setText(self.name)
+
         self.lineEdit.textEdited.connect(self.updateName)
-        self.lineEdit.focusInEvent = self.lineFocusIn
-        self.lineEdit.focusOutEvent = self.lineFocusOut
         self.fm = QtGui.QFontMetrics(self.lineEdit.font())
 
         self.color = None
         if "color" in self.data:
             self.color = self.data["color"]
 
-        if "name" in self.data:
-            self.name = self.data["name"]
-            self.lineEdit.setText(self.name)
-
         self.lineEdit.resize(self.fm.horizontalAdvance(self.lineEdit.text()) + 10, self.fm.height() * 2)
 
         self.updatePositions()
-
-    def lineFocusIn(self, a0):
-        self.lineEdit.selectAll()
-        self.lineEdit.update()
-        self.parent.selected = self
-        self.parent.inEditMode = True
-
-    def lineFocusOut(self, a0):
-        self.lineEdit.deselect()
-        self.lineEdit.repaint()
-        self.parent.selected = None
-        self.parent.inEditMode = False
 
     def getRepr(self):
         return [self.node1, self.node2]
@@ -102,8 +91,8 @@ class QEdgeWidget():
     def updatePositions(self):
         n1 = self.node1
         n2 = self.node2
-        e1 = n1.position
-        e2 = n2.position
+        e1 = n1.widgetPosition
+        e2 = n2.widgetPosition
 
         horPos = 0.5
         vertPos = 0.5

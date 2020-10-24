@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        map = fileIO.openFile("test2.ncm")
+        map = fileIO.openFile("redirect.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
@@ -117,21 +117,6 @@ class MainWindow(QMainWindow):
         self.editMenu.addAction(self.redoAction)
 
         self.editMenu.addSeparator()
-
-        # Create Redirect action
-        self.createRedirectAction = QtWidgets.QAction("Create Redirect", self)
-        self.createRedirectAction.setShortcut("Tab")
-        self.createRedirectAction.triggered.connect(self.mapperCreateRedirect)
-        self.editMenu.addAction(self.createRedirectAction)
-        self.shortcutList.append(self.createRedirectAction)
-
-        # Dissolve Redirect action
-        self.dissolveRedirectAction = QtWidgets.QAction("Create Redirect", self)
-        self.dissolveRedirectAction.setShortcut("Shift+Del")
-        self.dissolveRedirectAction.triggered.connect(self.mapperDissolveRedirect)
-        self.editMenu.addAction(self.dissolveRedirectAction)
-        self.shortcutList.append(self.dissolveRedirectAction)
-
 
         # Help menu
         self.helpMenu = QtWidgets.QMenu("Help")
@@ -228,15 +213,6 @@ class MainWindow(QMainWindow):
 
     def mapperDeleteSelected(self):
         self.mapper.handleAction("deleteSelected")
-
-    def mapperCreateRedirect(self):
-        self.mapper.handleAction("createRedirect")
-
-    def mapperDeleteRedirect(self):
-        self.mapper.handleAction("deleteRedirect")
-
-    def mapperDissolveRedirect(self):
-        self.mapper.handleAction("dissolveRedirect")
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event

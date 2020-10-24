@@ -8,8 +8,6 @@ class QDragWidget(QtWidgets.QWidget):
 
         self.parent = parent
 
-        self.coordLabel = None
-
     def mousePressEvent(self, event):
         self.__mousePressPos = None
         self.__mouseMovePos = None

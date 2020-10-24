@@ -28,7 +28,7 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.mainWidget = QtWidgets.QWidget(self)
         self.mainWidget.setLayout(self.layout)
 
-        self.mainWidget.resize(100, 125)
+        self.mainWidget.resize(100, 100)
 
         self.center = QtCore.QPoint(0,0)
 
@@ -58,10 +58,6 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.layout.addWidget(self.label)
 
-        self.coordLabel = QtWidgets.QLabel()
-        self.coordLabel.setStyleSheet(f"background-color: {self.color}; color: black")
-        self.layout.addWidget(self.coordLabel)
-
         self.lFont = self.label.font()
 
         self.textEdit = QtWidgets.QLineEdit(self.name)
@@ -70,8 +66,6 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.textEdit.editingFinished.connect(self.updateName)
         self.layout.addWidget(self.textEdit)
         self.textEdit.hide()
-
-        self.testVar = [0,0]
 
         self.update()
 
@@ -135,14 +129,4 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.center = QtCore.QPoint(self.widgetPosition[0] + self.width() / 2, self.widgetPosition[1] + self.height() / 2)
 
     def update(self):
-        relativeToZero = [
-            self.widgetPosition[0] - self.parent.anchor.widgetPosition[0],
-            self.widgetPosition[1] - self.parent.anchor.widgetPosition[1],
-        ]
-        scaled = [
-            int(relativeToZero[0] / self.parent.zoomLevel),
-            int(relativeToZero[1] / self.parent.zoomLevel),
-        ]
-        if self.coordLabel is not None:
-            self.coordLabel.setText(str(self.position) + "\n" + str(self.widgetPosition) + "\n" + str(relativeToZero) + "\n" + str(scaled))
         super().update()
