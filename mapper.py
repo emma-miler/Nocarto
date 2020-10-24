@@ -66,6 +66,8 @@ class FreeFormMap(QtWidgets.QWidget):
         self.snapMode = False
         self.tempLine = None
 
+        self.setFocus()
+
     def paintEvent(self, event):
         qp = QtGui.QPainter()
         qp.begin(self)

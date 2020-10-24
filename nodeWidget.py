@@ -93,7 +93,11 @@ class QNodeWidget(draggableWidget.QDragWidget):
             self.label.setText(self.name)
             self.textEdit.setText(self.name)
         if "position" in delta:
-            self.moveNode(delta["position"][0], delta["position"][1])
+            self.moveNode(
+                (delta["position"][0] * self.parent.zoomLevel) + self.parent.offset.x(),
+                (delta["position"][1] * self.parent.zoomLevel) + self.parent.offset.y(),
+                realPos=[delta["position"][0], delta["position"][1]]
+            )
         if "data" in delta:
             newData = delta["data"]
             for item in newData.keys():
@@ -112,12 +116,15 @@ class QNodeWidget(draggableWidget.QDragWidget):
         self.label.setText(event)
 
     # Moves the node to a new location and updates
-    def moveNode(self, x, y):
+    def moveNode(self, x, y, realPos=None):
         self.move(x, y)
-        self.position = [
-            (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
-            (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
-        ]
+        if realPos is not None:
+            self.position = realPos
+        else:
+            self.position = [
+                (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+                (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
+            ]
         self.widgetPosition = [x,y]
         self.center = QtCore.QPointF(self.widgetPosition[0] + self.width()/2, self.widgetPosition[1] + self.height()/2)
 

@@ -12,11 +12,9 @@ Nocarto is written in Python using the PyQt framework.
 * Very lightweight and fast operation and editing
 
 ## In-development/planned features
-* Undo/redo stack
 * Export to PNG
 * Support for more existing formats
 * Grid snapping
-* Zooming and moveable UI
 
 ## License
 
