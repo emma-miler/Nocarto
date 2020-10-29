@@ -133,7 +133,7 @@ class FreeFormMap(QtWidgets.QWidget):
             newSelection.setSelected(True)
         self.selected = newSelection
 
-    def addNode(self, name, position, connections, data=None, id=None, push=True):
+    def addNode(self, name, position, connections, data=None, id=None, push=True, fromExisting=True):
         if id is None:
             newId = tools.generateId(self)
         else:
@@ -143,8 +143,11 @@ class FreeFormMap(QtWidgets.QWidget):
         connectionList = connections if connections is not None else []
         newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
-        for connection in connectionList:
-            self.addConnection(newNode, connection)
+        if not fromExisting:
+            for connection in connectionList:
+                if type(connection) == int:
+                    connection = self.nodes[connection]
+                self.addConnection(newNode, connection)
 
         if push:
             self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
@@ -160,8 +163,6 @@ class FreeFormMap(QtWidgets.QWidget):
         for edge in self.edges.values():
             if edge == (node1, node2):
                 return
-        if type(node2) == int:
-            node2 = self.nodes[node2]
         node1.connections.append(node2.id)
         node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
@@ -178,10 +179,10 @@ class FreeFormMap(QtWidgets.QWidget):
             pos = [self.mapFromGlobal(QtGui.QCursor.pos()).x(), self.mapFromGlobal(QtGui.QCursor.pos()).y()]
         elif type(self.selected) == nodeWidget.QNodeWidget:
             pos = [self.selected.widgetPosition[0], self.selected.widgetPosition[1] + 150]
-            connection.append(self.selected)
+            connection.append(self.selected.id)
         elif type(self.selected) == edgeWidget.QEdgeWidget:
             pos = [ self.selected.lineEdit.pos().x() + self.offset.x(), self.selected.lineEdit.pos().y() + self.offset.y() ]
-        self.addNode("", pos, connection)
+        self.addNode("", pos, connection, fromExisting=False)
 
     def setEditNode(self, edit):
         if self.selected is not None:

@@ -137,3 +137,6 @@ class QNodeWidget(draggableWidget.QDragWidget):
 
     def update(self):
         super().update()
+        scale = 100 * self.parent.zoomLevel
+        self.mainWidget.resize(scale, scale)
+        self.center = QtCore.QPoint(self.widgetPosition[0] + scale / 2, self.widgetPosition[1] + scale / 2)  

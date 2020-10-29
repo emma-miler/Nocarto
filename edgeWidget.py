@@ -91,17 +91,14 @@ class QEdgeWidget():
     def updatePositions(self):
         n1 = self.node1
         n2 = self.node2
-        e1 = n1.widgetPosition
-        e2 = n2.widgetPosition
 
         horPos = 0.5
         vertPos = 0.5
 
-        x1 = e1[0] + n1.width() * horPos
-        y1 = e1[1] + n1.height() * vertPos
-        x2 = e2[0] + n2.width() * (1-horPos)
-        y2 = e2[1] + n2.height() * (1-vertPos)
-
+        x1 = n1.center.x()
+        y1 = n1.center.y()
+        x2 = n2.center.x()
+        y2 = n2.center.y()
 
         self.lineEdit.move(int((x1 + x2) / 2) - int(self.lineEdit.width() / 2), int((y1 + y2) / 2) - int(self.lineEdit.height() / 2))
 
@@ -122,17 +119,17 @@ class QEdgeWidget():
 
         for line in lines:
             n1 = line[0]
-            m1 = line[1]
+            n2 = line[1]
             e1 = n1.widgetPosition
-            e2 = m1.widgetPosition
+            e2 = n2.widgetPosition
 
             horPos = 0.5
             vertPos = 0.5
 
-            x1 = e1[0] + n1.width() * horPos
-            y1 = e1[1] + n1.height() * vertPos
-            x2 = e2[0] + m1.width() * (1 - horPos)
-            y2 = e2[1] + m1.height() * (1 - vertPos)
+            x1 = n1.center.x()
+            y1 = n1.center.y()
+            x2 = n2.center.x()
+            y2 = n2.center.y()
 
             #qp.drawLime(x1, y1, x2, y2)
             poly = QtGui.QPolygonF([

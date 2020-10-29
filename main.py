@@ -6,6 +6,9 @@ import mapper
 import shortcutDialog
 import fileIO
 
+# TODO: clean up all of mapper.py
+# TODO: DOCUMENTATION
+
 # TODO: Make some error handling dialogs
 # TODO: Add user settings
 # TODO: Editable shortcuts
@@ -180,10 +183,10 @@ class MainWindow(QMainWindow):
         if fileName:
             newMap = fileIO.openFile(fileName) # Generate a nodelist from the file
             self.deleteMapper() # Remove the current map widget
-            self.mapper = mapper.FreeFormMap(newMap, "freemap") # Create a new map widget and set it as the central widget
+            self.mapper = mapper.FreeFormMap(newMap, "freemap", parent=self) # Create a new map widget and set it as the central widget
             self.setCentralWidget(self.mapper)
             self.savedFileName = fileName # update the filename used when saving
-            self.setMapperAA(self.debugBox.isChecked())
+            self.setMapperAA(self.aaBox.isChecked())
     
     def importFile(self):
         options = QtWidgets.QFileDialog.Options()

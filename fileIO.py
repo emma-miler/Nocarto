@@ -110,6 +110,7 @@ def saveFile(mapperObject, fileName):
         savedEdge = serializeEdge(edge)
         edges.append(savedEdge)
     output["edges"] = edges
+    print(output)
     with open(fileName, "w") as outputFile:
         outputFile.write(json.dumps(output, indent=4))
 
