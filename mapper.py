@@ -6,6 +6,9 @@ import fileIO
 import edgeDetailDialog
 import anchor
 import tools
+import math
+
+# TODO: seperate map actor and drawing into seperate classes
 
 class FreeFormMap(QtWidgets.QWidget):
     def __init__(self, map=None, mapType=None, parent=None):
@@ -17,6 +20,8 @@ class FreeFormMap(QtWidgets.QWidget):
         self.mapEdges = map["edges"] if map is not None else []
 
         self.enableAA = False
+        self.gridEnabled = False
+        self.gridSize = 100
         self.inEditMode = False
 
         self.selected = None # Holds selected node
@@ -81,6 +86,19 @@ class FreeFormMap(QtWidgets.QWidget):
 
         self.polys = []
 
+        if self.gridEnabled:
+            qp.setPen(QtGui.QPen(QtGui.QColor(64, 64, 64), 1))
+            size = self.parent.size()
+            localGridSize = self.gridSize * self.zoomLevel
+            for x in range(math.ceil(size.width() / localGridSize)):
+                lineOffset = (x*localGridSize) + (self.offset.x() % localGridSize)
+                qp.drawLine(lineOffset, 0, lineOffset, size.height())
+            
+            for y in range(math.ceil(size.height() / localGridSize)):
+                lineOffset = (y*localGridSize) + (self.offset.y() % localGridSize)
+                qp.drawLine(0, lineOffset, size.width(), lineOffset)
+            
+
         if self.tempLine is not None:
             qp.drawLine(self.tempLine[0], self.tempLine[1])
 
@@ -126,8 +144,7 @@ class FreeFormMap(QtWidgets.QWidget):
         newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
         self.nodes[newId] = newNode
         for connection in connectionList:
-            continue
-            #self.addConnection(newNode, connection)
+            self.addConnection(newNode, connection)
 
         if push:
             self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
@@ -143,7 +160,8 @@ class FreeFormMap(QtWidgets.QWidget):
         for edge in self.edges.values():
             if edge == (node1, node2):
                 return
-
+        if type(node2) == int:
+            node2 = self.nodes[node2]
         node1.connections.append(node2.id)
         node1.connections = list(dict.fromkeys(node1.connections))
         node2.connections.append(node1.id)
@@ -157,7 +175,7 @@ class FreeFormMap(QtWidgets.QWidget):
         connection = []
         # noinspection PyUnresolvedReferences
         if self.selected is None:
-            pos = [300, 300]
+            pos = [self.mapFromGlobal(QtGui.QCursor.pos()).x(), self.mapFromGlobal(QtGui.QCursor.pos()).y()]
         elif type(self.selected) == nodeWidget.QNodeWidget:
             pos = [self.selected.widgetPosition[0], self.selected.widgetPosition[1] + 150]
             connection.append(self.selected)
@@ -347,16 +365,28 @@ class FreeFormMap(QtWidgets.QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        if 3 > self.zoomLevel + (event.angleDelta().y() / 1500) > 0.1:
-            self.zoomLevel += event.angleDelta().y() / 1500
-            s = event.angleDelta().y() / 1500
+        delta = round(event.angleDelta().y() / 1500, 1)
+        if 3 > self.zoomLevel + delta > 0.1:
+            self.zoomLevel += delta
             for node in self.nodes.values():
                 #node.updateZoomLevel(self.zoomLevel)
-                x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * s
-                y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * s
+                x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * delta
+                y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * delta
                 node.moveDelta(x0, y0)
                 node.update()
             self.update()
+            self.parent.zoomBox.setValue(self.zoomLevel)
+    
+    def setZoomLevel(self, level):
+        s = (level - self.zoomLevel)
+        self.zoomLevel = level
+        for node in self.nodes.values():
+            #node.updateZoomLevel(self.zoomLevel)
+            x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * s
+            y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * s
+            node.moveDelta(x0, y0)
+            node.update()
+        self.update()
 
     def handleAction(self, action, origin=None):
         if not self.inEditMode and self.hasFocus():

@@ -34,11 +34,18 @@ class QDragWidget(QtWidgets.QWidget):
             if (globalPos - self.startPos).manhattanLength() > 30 or self.freeDrag:
                 self.dragLeft = True
                 self.freeDrag = True
-                diff = globalPos - self.__mouseMovePos
-                newPos = self.mapFromGlobal(currPos + diff)
-                self.moveNode(newPos.x(), newPos.y())
+                if self.parent.gridEnabled:
+                    pos1 = self.parent.mapFromGlobal(globalPos)
+                    localGridSize = self.parent.gridSize * self.parent.zoomLevel
+                    self.moveNode(
+                        round(pos1.x() / localGridSize)*localGridSize,
+                        round(pos1.y() / localGridSize)*localGridSize
+                    )
+                else:
+                    diff = globalPos - self.__mouseMovePos
+                    newPos = self.mapFromGlobal(currPos + diff)
+                    self.moveNode(newPos.x(), newPos.y())
                 self.parent.update()
-
                 self.__mouseMovePos = globalPos
         elif event.buttons() == QtCore.Qt.RightButton:
             #self.parent.tempLine = 1

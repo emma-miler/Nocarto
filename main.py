@@ -9,7 +9,7 @@ import fileIO
 # TODO: Make some error handling dialogs
 # TODO: Add user settings
 # TODO: Editable shortcuts
-# TODO: implement proper scaling
+# TODO: fix loss of position precision when scaling (probably float to int position loss)
 # TODO: Add grid snapping feature?
 
 class MainWindow(QMainWindow):
@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        map = fileIO.openFile("redirect.ncm")
+        # map = fileIO.openFile("redirect.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
@@ -36,8 +36,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("background-color: #223; color: #dde")
         self.newWidget.setLayout(self.layout)
 
-        self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
-        # self.mapper = mapper.FreeFormMap(parent=self)
+        # self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
+        self.mapper = mapper.FreeFormMap(parent=self)
         # self.mapper.setMinimumSize(1000, 1000)
 
         self.setCentralWidget(self.mapper)
@@ -51,13 +51,37 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self.statusBar)
         self.statusBar.setStyleSheet("background-color: rgb(8,8,8)")
 
-        # Toggle debug rendering
-        # TODO: make this change render modes
-        self.debugAction = QtWidgets.QAction("Enable AntiAliasing")
-        self.debugBox = QtWidgets.QCheckBox("Enable AntiAliasing")
-        self.debugBox.clicked.connect(self.setMapperAA)
-        self.statusBar.addWidget(self.debugBox)
-        self.debugBox.click()
+        # Toggle AA
+        self.aaAction = QtWidgets.QAction("Enable AntiAliasing")
+        self.aaBox = QtWidgets.QCheckBox("Enable AntiAliasing")
+        self.aaBox.clicked.connect(self.setMapperAA)
+        self.statusBar.addWidget(self.aaBox)
+        self.aaBox.click()
+
+        # Toggle grid snapping
+        self.gridAction = QtWidgets.QAction("Grid Snapping")
+        self.gridBox = QtWidgets.QCheckBox("Grid Snapping")
+        self.gridBox.clicked.connect(self.setGridEnabled)
+        self.statusBar.addWidget(self.gridBox)
+        self.gridBox.click()
+
+        # Grid size
+        self.gridSizeLabel = QtWidgets.QLabel("Grid Size")
+        self.statusBar.addWidget(self.gridSizeLabel)
+        self.gridSizeBox = QtWidgets.QSpinBox()
+        self.gridSizeBox.setRange(10, 150)
+        self.gridSizeBox.valueChanged.connect(self.setGridSize)
+        self.gridSizeBox.setValue(50)
+        self.statusBar.addWidget(self.gridSizeBox)
+
+        self.zoomLabel = QtWidgets.QLabel("Zoom level")
+        self.statusBar.addWidget(self.zoomLabel)
+        self.zoomBox = QtWidgets.QDoubleSpinBox()
+        self.zoomBox.valueChanged.connect(self.setZoomLevel)
+        self.zoomBox.setRange(0.1, 3)
+        self.zoomBox.setSingleStep(0.05)
+        self.zoomBox.setValue(1)
+        self.statusBar.addWidget(self.zoomBox)
 
         self.menuBar = self.menuBar()
 
@@ -216,12 +240,26 @@ class MainWindow(QMainWindow):
 
     def setMapperAA(self, event): 
         self.mapper.enableAA = event
-        #self.mapper.graphicsView.setRenderHint(QtGui.QPainter.Antialiasing, event)
+        self.update() # redraw screen
+    
+    def setGridEnabled(self, event): 
+        self.mapper.gridEnabled = event
+        self.update() # redraw screen
+    
+    def setGridSize(self, event): 
+        self.mapper.gridSize = event
         self.update() # redraw screen
 
     def showShortcutDialog(self, event):
         dialog = shortcutDialog.ShortcutDialog(self.shortcutList)
         dialog.exec()
+
+    def runEval(self):
+        print(exec("print(" + self.evalBox.text() + ")"))
+    
+    def setZoomLevel(self, event):
+        if event != self.mapper.zoomLevel:
+            self.mapper.setZoomLevel(event)
 
     def undo(self):
         self.mapper.undo()
