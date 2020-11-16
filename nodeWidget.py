@@ -23,64 +23,25 @@ class QNodeWidget(draggableWidget.QDragWidget):
             self.data = {}
 
         self.layout = QtWidgets.QVBoxLayout()
-        self.layout.setContentsMargins(QtCore.QMargins(5, 5, 5, 5))
+        #self.layout.setContentsMargins(QtCore.QMargins(5, 5, 5, 5))
 
         self.mainWidget = QtWidgets.QWidget(self)
         self.mainWidget.setLayout(self.layout)
+        self.mainWidget.setStyleSheet(f"background-color: transparent; color: black")
 
-        self.mainWidget.resize(100, 100)
+        #self.mainWidget.resize(100, 100)
 
         self.center = QtCore.QPoint(0,0)
 
         self.moveNode(self.position[0], self.position[1])
 
-        self.styleSelected = """
-            background-color: white;
-            border-radius: 10%;
-        """
-
-        self.styleUnselected = """
-            background-color: transparent;
-            border-radius: 10%;
-        """
-
-        self.mainWidget.setStyleSheet(self.styleUnselected)
-
-        self.isSelected = False
-
         self.color = "gray"
         if "color" in self.data:
             self.color = self.data["color"]
-        
-        self.label = QtWidgets.QLabel()
-        self.label.setText(self.name)
-        self.label.setStyleSheet(f"background-color: {self.color}; color: black")
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
-        self.layout.addWidget(self.label)
-
-        self.lFont = self.label.font()
-
-        self.textEdit = QtWidgets.QLineEdit(self.name)
-        self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
-        self.textEdit.setAlignment(QtCore.Qt.AlignCenter)
-        self.textEdit.editingFinished.connect(self.updateName)
-        self.layout.addWidget(self.textEdit)
-        self.textEdit.hide()
 
         self.update()
 
         self.show()
-
-    # Make this node the selected node
-    # VISUAL CHANGE ONLY!
-    def setSelected(self, isSelected):
-        self.isSelected = isSelected
-        if isSelected:
-            self.mainWidget.setStyleSheet(self.styleSelected)
-        else:
-            self.mainWidget.setStyleSheet(self.styleUnselected)
-        self.update()
-
 
     # Adds a connection to another node
     def addConnection(self, other):
@@ -90,8 +51,6 @@ class QNodeWidget(draggableWidget.QDragWidget):
     def applyChange(self, delta):
         if "name" in delta:
             self.name = delta["name"]
-            self.label.setText(self.name)
-            self.textEdit.setText(self.name)
         if "position" in delta:
             self.moveNode(
                 (delta["position"][0] * self.parent.zoomLevel) + self.parent.offset.x(),
@@ -106,14 +65,12 @@ class QNodeWidget(draggableWidget.QDragWidget):
                     print("test")
                     print(newData[item])
                     self.color = newData["color"] if newData["color"] is not None else "gray"
-                    self.label.setStyleSheet(f"background-color: {self.color}; color: black")
-                    self.textEdit.setStyleSheet(f"background-color: {self.color}; color: black")
 
-    def updateName(self):
-        event = self.textEdit.text()
-        self.parent.stateMachine.editNode(self.id, {"name": self.name}, {"name": event}, origin="nodeWidget.py:updateName")
-        self.name = event
-        self.label.setText(event)
+    def updateName(self, newName, test=False):
+        print("test", test)
+        self.parent.stateMachine.editNode(self.id, {"name": self.name}, {"name": newName}, origin="nodeWidget.py:updateName")
+        self.name = newName
+        self.parent.update()
 
     # Moves the node to a new location and updates
     def moveNode(self, x, y, realPos=None):
@@ -140,7 +97,8 @@ class QNodeWidget(draggableWidget.QDragWidget):
         scale = 100 * self.parent.zoomLevel
         self.mainWidget.resize(scale, scale)
         try:
-            self.label.setText(str(self.position) + "\n" + str(self.widgetPosition))
+            pass
+            #self.label.setText(str(self.position) + "\n" + str(self.widgetPosition))
         except AttributeError:
             pass
-        self.center = QtCore.QPoint(self.widgetPosition[0] + scale / 2, self.widgetPosition[1] + scale / 2)  
+        self.center = QtCore.QPoint(self.widgetPosition[0] + scale / 2, self.widgetPosition[1] + scale / 2)

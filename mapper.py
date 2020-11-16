@@ -33,6 +33,11 @@ class FreeFormMap(QtWidgets.QWidget):
         self.offset = QtCore.QPoint()
         self.zoomLevel = 1
 
+        self.textEdit = QtWidgets.QLineEdit(parent=self)
+        self.textEdit.resize(100, 30)
+        self.textEdit.editingFinished.connect(self.textEditFinish)
+        self.textEdit.hide()
+
         # Set up state machine
         self.stateMachine = stateMachine.StateMachine(parent=self)
 
@@ -115,6 +120,20 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.polys.append(poly)
                 qp.drawPath(path)
 
+        for node in self.nodes.values():
+            if node == self.selected:
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
+            else:
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(node.color)))
+            path = QtGui.QPainterPath()
+            path.addRoundedRect(node.pos().x(), node.pos().y(), 100 * self.zoomLevel, 100 * self.zoomLevel, 10, 10)
+            qp.drawPath(path)
+
+            if not (self.inEditMode and self.selected == node):
+                qp.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 10))
+                qp.drawText(node.pos().x(), node.pos().y(), 100*self.zoomLevel, 100*self.zoomLevel, QtCore.Qt.TextWordWrap | QtCore.Qt.AlignCenter, node.name)
+                qp.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 0))
+
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
         qp.drawEllipse(self.offset, 10, 10)
 
@@ -129,14 +148,8 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.end()
 
     def updateSelection(self, newSelection):
-        if self.selected is not None:
-            if type(self.selected) == nodeWidget.QNodeWidget:
-                self.selected.setSelected(False)
-            elif type(self.selected) == edgeWidget.QEdgeWidget:
-                pass
-        if newSelection is not None:
-            newSelection.setSelected(True)
         self.selected = newSelection
+        self.update()
 
     def addNode(self, name, position, connections, data=None, id=None, push=True, fromExisting=True):
         if id is None:
@@ -194,21 +207,25 @@ class FreeFormMap(QtWidgets.QWidget):
             if edit is True:
                 self.inEditMode = True
                 if type(self.selected) == nodeWidget.QNodeWidget:
-                    self.selected.label.hide()
-                    self.selected.textEdit.show()
-                    self.selected.textEdit.setFocus()
+                    self.textEdit.move(
+                        self.selected.pos().x(),
+                        self.selected.pos().y() + 100*self.zoomLevel/2 - 10
+                    )
+                    self.textEdit.resize(100 * self.zoomLevel, 30)
+                    self.textEdit.setText(self.selected.name)
+                    self.textEdit.show()
+                    self.textEdit.setFocus()
             else:
                 self.inEditMode = False
                 if type(self.selected) == nodeWidget.QNodeWidget:
-                    newText = self.selected.textEdit.text()
-                    self.selected.text = newText
-                    self.selected.label.setText(newText)
-                    self.selected.label.show()
-                    self.selected.textEdit.hide()
+                    self.textEdit.hide()
                 else:
                     pass
             self.selected.update()
             self.update()
+
+    def textEditFinish(self):
+        self.selected.updateName(self.textEdit.text())
 
     def setEditEdge(self, edit):
         if self.selected is not None:
@@ -347,6 +364,11 @@ class FreeFormMap(QtWidgets.QWidget):
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
                     self.selected = poly[2]
+        for node in self.nodes.values():
+            if node.pos().x() < localPos.x() < node.pos().x() + 100 * self.zoomLevel:
+                if node.pos().y() < localPos.y() < node.pos().y() + 100 * self.zoomLevel:
+                    self.updateSelection(node)
+                    break
         self.update()
         if self.selected is None and event.button() == QtCore.Qt.LeftButton:
             self.__mousePressPos = event.globalPos()

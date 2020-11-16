@@ -14,6 +14,8 @@ import fileIO
 # TODO: Editable shortcuts
 # TODO: Fix grid snapping when zoomed
 
+# TODO: save drag offset
+
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
