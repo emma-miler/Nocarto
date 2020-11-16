@@ -38,8 +38,8 @@ class QDragWidget(QtWidgets.QWidget):
                     pos1 = self.parent.mapFromGlobal(globalPos)
                     localGridSize = self.parent.gridSize * self.parent.zoomLevel
                     self.moveNode(
-                        round(pos1.x() / localGridSize)*localGridSize,
-                        round(pos1.y() / localGridSize)*localGridSize
+                        round(pos1.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
+                        round(pos1.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
                     )
                 else:
                     diff = globalPos - self.__mouseMovePos
@@ -97,3 +97,26 @@ class QDragWidget(QtWidgets.QWidget):
             if dialog.apply:
                 self.parent.stateMachine.editNode(self.id, dialog.nodeDeltaOld, dialog.nodeDeltaNew, origin="nodeWidget.py:mouseDoubleClickEvent")
                 self.applyChange(dialog.nodeDeltaNew)
+
+        # Moves the node to a new location and updates
+
+    def moveNode(self, x, y, realPos=None):
+        self.move(x, y)
+        if realPos is not None:
+            self.position = realPos
+        else:
+            self.position = [
+                (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+                (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
+            ]
+        self.widgetPosition = [x, y]
+        self.center = QtCore.QPointF(self.widgetPosition[0] + self.width() / 2,
+                                     self.widgetPosition[1] + self.height() / 2)
+
+        self.update()
+
+    def moveDelta(self, x, y):
+        self.move(self.pos().x() + x, self.pos().y() + y)
+        self.widgetPosition = [self.pos().x(), self.pos().y()]
+        self.center = QtCore.QPoint(self.widgetPosition[0] + self.width() / 2,
+                                    self.widgetPosition[1] + self.height() / 2)

@@ -368,6 +368,7 @@ class FreeFormMap(QtWidgets.QWidget):
             if node.pos().x() < localPos.x() < node.pos().x() + 100 * self.zoomLevel:
                 if node.pos().y() < localPos.y() < node.pos().y() + 100 * self.zoomLevel:
                     self.updateSelection(node)
+                    self.selected.mousePressEvent(event)
                     break
         self.update()
         if self.selected is None and event.button() == QtCore.Qt.LeftButton:
@@ -390,6 +391,8 @@ class FreeFormMap(QtWidgets.QWidget):
                     node.moveDelta(diff.x(), diff.y())
                 self.anchor.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
+        elif type(self.selected) == nodeWidget.QNodeWidget:
+            self.selected.mouseMoveEvent(event)
         self.update()
 
     def wheelEvent(self, event):

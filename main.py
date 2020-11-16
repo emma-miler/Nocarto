@@ -12,9 +12,6 @@ import fileIO
 # TODO: Make some error handling dialogs
 # TODO: Add user settings
 # TODO: Editable shortcuts
-# TODO: Fix grid snapping when zoomed
-
-# TODO: save drag offset
 
 class MainWindow(QMainWindow):
 
