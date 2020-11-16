@@ -12,8 +12,7 @@ import fileIO
 # TODO: Make some error handling dialogs
 # TODO: Add user settings
 # TODO: Editable shortcuts
-# TODO: fix loss of position precision when scaling (probably float to int position loss)
-# TODO: Add grid snapping feature?
+# TODO: Fix grid snapping when zoomed
 
 class MainWindow(QMainWindow):
 

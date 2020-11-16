@@ -119,7 +119,12 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.drawEllipse(self.offset, 10, 10)
 
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 10))
-        qp.drawText(1500, 100, f"Zoom level: {self.zoomLevel}")
+        qp.drawText(1000, 100, f"Zoom level: {self.zoomLevel}")
+        qp.drawText(1000, 150, f"Anchor: {self.anchor.widgetPosition}")
+        qp.drawText(1000, 200, f"Offset: {self.offset.x()}, {self.offset.y()}")
+        node = list(self.nodes.values())[0]
+        qp.drawText(1000, 250, f"Node X: {((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * self.zoomLevel}")
+        qp.drawText(1000, 300, f"Pos: {node.pos().x()}, {node.pos().y()}")
 
         qp.end()
 
@@ -366,16 +371,10 @@ class FreeFormMap(QtWidgets.QWidget):
         self.update()
 
     def wheelEvent(self, event):
-        delta = round(event.angleDelta().y() / 1500, 1)
+        delta = round(event.angleDelta().y() / 1500, 3)
+        print(delta)
         if 3 > self.zoomLevel + delta > 0.1:
-            self.zoomLevel += delta
-            for node in self.nodes.values():
-                #node.updateZoomLevel(self.zoomLevel)
-                x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * delta
-                y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * delta
-                node.moveDelta(x0, y0)
-                node.update()
-            self.update()
+            self.setZoomLevel(self.zoomLevel + delta)
             self.parent.zoomBox.setValue(self.zoomLevel)
     
     def setZoomLevel(self, level):
@@ -383,9 +382,9 @@ class FreeFormMap(QtWidgets.QWidget):
         self.zoomLevel = level
         for node in self.nodes.values():
             #node.updateZoomLevel(self.zoomLevel)
-            x0 = ((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * s
-            y0 = ((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1]) * s
-            node.moveDelta(x0, y0)
+            x0 = ((((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0])) * self.zoomLevel) + self.offset.x()
+            y0 = ((((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1])) * self.zoomLevel) + self.offset.y()
+            node.moveNode(x0, y0, realPos=node.position)
             node.update()
         self.update()
 

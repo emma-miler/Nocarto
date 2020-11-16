@@ -62,6 +62,8 @@ class QNodeDetailDialog(QtWidgets.QDialog):
         self.dataTable = QtWidgets.QTableView()
         self.layout.addWidget(self.dataTable)
 
+        self.textInput.setText(str(node.position[0]) + ", " + str(node.position[1]))
+
         self.model = QtGui.QStandardItemModel()
 
         for item in node.data.keys():

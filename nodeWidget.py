@@ -139,4 +139,8 @@ class QNodeWidget(draggableWidget.QDragWidget):
         super().update()
         scale = 100 * self.parent.zoomLevel
         self.mainWidget.resize(scale, scale)
+        try:
+            self.label.setText(str(self.position) + "\n" + str(self.widgetPosition))
+        except AttributeError:
+            pass
         self.center = QtCore.QPoint(self.widgetPosition[0] + scale / 2, self.widgetPosition[1] + scale / 2)  
