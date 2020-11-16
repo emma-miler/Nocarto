@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore, QtGui
 
-import nodeWidget, edgeWidget
+import nodeWidget, edgeWidget, regionWidget
 import stateMachine
 import fileIO
 import edgeDetailDialog
@@ -16,6 +16,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.parent = parent
         self.nodes = {} # List of all nodes, with their id as the key
         self.edges = {} # List of edges currently being drawn
+        self.regions = {}
         self.mapNodes = map["nodes"] if map is not None else []
         self.mapEdges = map["edges"] if map is not None else []
 
@@ -156,7 +157,6 @@ class FreeFormMap(QtWidgets.QWidget):
             newId = tools.generateId(self)
         else:
             newId = id
-
         # Instantiate the node and update possible parents or add to roots list
         connectionList = connections if connections is not None else []
         newNode = nodeWidget.QNodeWidget(newId, name, position, connectionList, data, parent=self)
@@ -166,10 +166,8 @@ class FreeFormMap(QtWidgets.QWidget):
                 if type(connection) == int:
                     connection = self.nodes[connection]
                 self.addConnection(newNode, connection)
-
         if push:
             self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
-
         return newNode
 
     def addConnection(self, node1, node2, id=None, data=None):
@@ -190,9 +188,11 @@ class FreeFormMap(QtWidgets.QWidget):
         self.edges[newId] = edge
         self.update()
 
+    def createRegion(self):
+
+
     def createNewNode(self):
         connection = []
-        # noinspection PyUnresolvedReferences
         if self.selected is None:
             pos = [self.mapFromGlobal(QtGui.QCursor.pos()).x(), self.mapFromGlobal(QtGui.QCursor.pos()).y()]
         elif type(self.selected) == nodeWidget.QNodeWidget:
@@ -417,6 +417,8 @@ class FreeFormMap(QtWidgets.QWidget):
         if not self.inEditMode and self.hasFocus():
             if action == "createNode":
                 self.createNewNode()
+            if action == "createRegion":
+                self.createRegion()
             elif action == "editNode":
                 self.setEditNode(True)
             elif action == "deleteNode":

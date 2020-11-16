@@ -58,7 +58,6 @@ class QNodeWidget(draggableWidget.QDragWidget):
                     self.color = newData["color"] if newData["color"] is not None else "gray"
 
     def updateName(self, newName, test=False):
-        print("test", test)
         self.parent.stateMachine.editNode(self.id, {"name": self.name}, {"name": newName}, origin="nodeWidget.py:updateName")
         self.name = newName
         self.parent.update()

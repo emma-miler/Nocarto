@@ -161,6 +161,13 @@ class MainWindow(QMainWindow):
         self.addAction(self.createNode)
         self.shortcutList.append(self.createNode)
 
+        # Create region
+        self.createRegion = QtWidgets.QAction("Create Region", self)
+        self.createRegion.setShortcut("Shift+Return")
+        self.createRegion.triggered.connect(self.mapperCreateRegion)
+        self.addAction(self.createRegion)
+        self.shortcutList.append(self.createRegion)
+
         # Edit node
         self.editNode = QtWidgets.QAction("Edit Node", self)
         self.editNode.setShortcut("Space")
@@ -232,6 +239,9 @@ class MainWindow(QMainWindow):
     
     def mapperCreateNode(self):
         self.mapper.handleAction("createNode")
+
+    def mapperCreateRegion(self):
+        self.mapper.handleAction("createRegion")
 
     def mapperEditNode(self):
         self.mapper.handleAction("editNode")
