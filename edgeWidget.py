@@ -2,8 +2,6 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 import edgeDetailDialog
 
-# TODO: add routing points for line, and maybe make it support beziers
-
 class QEdgeWidget():
     def __init__(self, id, name, node1, node2, lineEdit: QtWidgets.QLineEdit, data=None, parent=None):
         super().__init__()

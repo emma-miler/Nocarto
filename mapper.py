@@ -68,8 +68,10 @@ class FreeFormMap(QtWidgets.QWidget):
         if map is None:
             id1 = tools.generateId(self)
             id2 = tools.generateId(self)
+            id3 = tools.generateId(self)
             self.root = self.addNode(str(id1), [300, 300], None, id=id1)
             self.root1 = self.addNode(str(id2), [300, 400], [self.root.id], id=id2)
+            self.testRegion = self.addRegion("Testing 123", [100, 100], QtCore.QPoint(500,500), color="red", id=id3)
             self.addConnection(self.root, self.root1)
 
         #self.overlay = OverlayWidget(self)
@@ -108,7 +110,36 @@ class FreeFormMap(QtWidgets.QWidget):
         if self.tempLine is not None:
             qp.drawLine(self.tempLine[0], self.tempLine[1])
 
+        font = qp.font()
+        font_region = qp.font()
+        font_region.setPointSize(font.pointSize() * 1.5)
+        qp.setFont(font_region)
+
+        # Regions
+
+        for region in self.regions.values():
+            region.calculateCaptured()
+            if region == self.selected:
+                qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 64)))
+                qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 255)))
+            else:
+                c = QtGui.QColor(region.color)
+                c.setAlpha(64)
+                qp.setBrush(QtGui.QBrush(c))
+                qp.setPen(QtGui.QPen(QtGui.QColor(region.color)))
+            path = QtGui.QPainterPath()
+            path.addRoundedRect(region.pos().x(), region.pos().y(), region.size.x() * self.zoomLevel, region.size.y() * self.zoomLevel, 10, 10)
+            qp.drawPath(path)
+
+            if not (self.inEditMode and self.selected == region):
+                qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 10))
+                qp.drawText(region.pos().x(), region.pos().y(), region.size.y()*self.zoomLevel, region.size.y()*self.zoomLevel / 10, QtCore.Qt.TextWordWrap | QtCore.Qt.AlignCenter, region.name + str(region.captured))
+                qp.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 0))
+
+        qp.setFont(font)
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 0), 15))
+
+        # Edges
 
         for edge in self.edges.values():
             for poly in edge.generatePolys():
@@ -121,7 +152,10 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.polys.append(poly)
                 qp.drawPath(path)
 
+        # Nodes
+
         for node in self.nodes.values():
+            qp.setPen(QtGui.QPen(QtGui.QColor(64, 64, 64, 128), 3))
             if node == self.selected:
                 qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255)))
             else:
@@ -170,6 +204,21 @@ class FreeFormMap(QtWidgets.QWidget):
             self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
         return newNode
 
+    def addRegion(self, name, position, size, color=None, id=None, push=True, fromExisting=True):
+        if id is None:
+            newId = tools.generateId(self)
+        else:
+            newId = id
+        newRegion = regionWidget.QRegionWidget(newId, name, position, size, color, parent=self)
+        self.regions[newId] = newRegion
+        if not fromExisting:
+            pass # TODO: add child nodes
+        if push:
+            pass # TODO: add state machine stuff
+            #self.stateMachine.addNode(fileIO.serializeNode(self, newNode), origin="mapper.py:addNode")
+        return newRegion
+
+
     def addConnection(self, node1, node2, id=None, data=None):
         if id is None:
             newId = tools.generateId(self)
@@ -189,6 +238,14 @@ class FreeFormMap(QtWidgets.QWidget):
         self.update()
 
     def createRegion(self):
+        if self.selected is None:
+            pos = [self.mapFromGlobal(QtGui.QCursor.pos()).x(), self.mapFromGlobal(QtGui.QCursor.pos()).y()]
+        elif type(self.selected) == nodeWidget.QNodeWidget:
+            pos = [self.selected.widgetPosition[0], self.selected.widgetPosition[1] + 150]
+            connection.append(self.selected.id)
+        elif type(self.selected) == edgeWidget.QEdgeWidget:
+            pos = [ self.selected.lineEdit.pos().x() + self.offset.x(), self.selected.lineEdit.pos().y() + self.offset.y() ]
+        self.addRegion("Title", pos, QtCore.QPoint(250, 250), color="red")
 
 
     def createNewNode(self):
@@ -215,9 +272,18 @@ class FreeFormMap(QtWidgets.QWidget):
                     self.textEdit.setText(self.selected.name)
                     self.textEdit.show()
                     self.textEdit.setFocus()
+                elif type(self.selected) == regionWidget.QRegionWidget:
+                    self.textEdit.move(
+                        self.selected.pos().x(),
+                        (self.selected.pos().y() + 10*self.zoomLevel/2)
+                    )
+                    self.textEdit.resize(self.selected.size.x() * self.zoomLevel, 30*1.5)
+                    self.textEdit.setText(self.selected.name)
+                    self.textEdit.show()
+                    self.textEdit.setFocus()
             else:
                 self.inEditMode = False
-                if type(self.selected) == nodeWidget.QNodeWidget:
+                if type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget:
                     self.textEdit.hide()
                 else:
                     pass
@@ -283,12 +349,6 @@ class FreeFormMap(QtWidgets.QWidget):
         self.stateMachine.deleteEdge(fileIO.serializeEdge(edge), origin="mapper.py:deleteConnection")
         edge.destroy()
         del edge
-
-    def dissolveRedirect(self, redirect):
-        # TODO: add proper state machine atoms for redirects
-        edge = self.edges[redirect.parentEdge]
-        edge.data["redirects"] = [x for x in edge.data["redirects"] if x != redirect.id]
-        self.deleteNode(redirect)
 
     def rebuildNode(self, data, edges=None):
         position = [
@@ -360,6 +420,12 @@ class FreeFormMap(QtWidgets.QWidget):
         self.setFocus()
         self.setEditNode(False)
         self.updateSelection(None)
+        for region in self.regions.values():
+            if region.pos().x() < localPos.x() < region.pos().x() + region.size.x() * self.zoomLevel:
+                if region.pos().y() < localPos.y() < region.pos().y() + region.size.y() * self.zoomLevel:
+                    self.updateSelection(region)
+                    self.selected.mousePressEvent(event)
+                    break
         for poly in self.polys:
             if poly[0].containsPoint(localPos, QtCore.Qt.OddEvenFill) or poly[1].containsPoint(localPos, QtCore.Qt.OddEvenFill):
                 if event.buttons() == QtCore.Qt.LeftButton:
@@ -389,9 +455,11 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.offset += diff
                 for node in self.nodes.values():
                     node.moveDelta(diff.x(), diff.y())
+                for region in self.regions.values():
+                    region.moveDelta(diff.x(), diff.y())
                 self.anchor.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
-        elif type(self.selected) == nodeWidget.QNodeWidget:
+        elif type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget:
             self.selected.mouseMoveEvent(event)
         self.update()
 
@@ -411,6 +479,12 @@ class FreeFormMap(QtWidgets.QWidget):
             y0 = ((((node.position[1] + self.offset.y()) - self.anchor.widgetPosition[1])) * self.zoomLevel) + self.offset.y()
             node.moveNode(x0, y0, realPos=node.position)
             node.update()
+        for region in self.regions.values():
+            #node.updateZoomLevel(self.zoomLevel)
+            x0 = ((((region.position[0] + self.offset.x()) - self.anchor.widgetPosition[0])) * self.zoomLevel) + self.offset.x()
+            y0 = ((((region.position[1] + self.offset.y()) - self.anchor.widgetPosition[1])) * self.zoomLevel) + self.offset.y()
+            region.moveNode(x0, y0, realPos=region.position)
+            region.update()
         self.update()
 
     def handleAction(self, action, origin=None):

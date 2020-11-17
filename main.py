@@ -13,6 +13,8 @@ import fileIO
 # TODO: Add user settings
 # TODO: Editable shortcuts
 
+# TODO: add function to serialize regions
+
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
