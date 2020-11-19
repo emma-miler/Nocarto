@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
 
         self.setupUi()
 
-        # map = fileIO.openFile("redirect.ncm")
+        map = fileIO.openFile("test.ncm")
 
         self.newWidget = QtWidgets.QWidget()
         self.layout = QtWidgets.QVBoxLayout()
@@ -39,8 +39,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("background-color: #223; color: #dde")
         self.newWidget.setLayout(self.layout)
 
-        # self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
-        self.mapper = mapper.FreeFormMap(parent=self)
+        self.mapper = mapper.FreeFormMap(map, "freemap", parent=self)
+        #self.mapper = mapper.FreeFormMap(parent=self)
         # self.mapper.setMinimumSize(1000, 1000)
 
         self.setCentralWidget(self.mapper)

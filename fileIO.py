@@ -96,6 +96,16 @@ def serializeEdge(edge):
         "node2": edge.node2.id,
         "data": edge.data
     }
+def serializeRegion(region):
+    children = [child for child in region.captured]
+    return {
+        "id": region.id,
+        "name": region.name,
+        "position": region.position,
+        "size": [region.size.x(), region.size.y()],
+        "color": region.color,
+        "children": children
+    }
 
 # Save a map object into a file
 def saveFile(mapperObject, fileName):
@@ -110,6 +120,11 @@ def saveFile(mapperObject, fileName):
         savedEdge = serializeEdge(edge)
         edges.append(savedEdge)
     output["edges"] = edges
+    regions = []
+    for region in mapperObject.regions.values():
+        savedRegion = serializeRegion(region)
+        regions.append(savedRegion)
+    output["regions"] = regions
     print(output)
     with open(fileName, "w") as outputFile:
         outputFile.write(json.dumps(output, indent=4))
@@ -124,5 +139,6 @@ def openFile(fileName):
     return {
         "version": data["version"],
         "nodes": data["nodes"],
-        "edges": data["edges"]
+        "edges": data["edges"],
+        "regions": data["regions"]
     }

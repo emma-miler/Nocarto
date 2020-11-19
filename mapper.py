@@ -17,9 +17,10 @@ class FreeFormMap(QtWidgets.QWidget):
         self.nodes = {} # List of all nodes, with their id as the key
         self.edges = {} # List of edges currently being drawn
         self.regions = {}
-        self.mapNodes = map["nodes"] if map is not None else []
-        self.mapEdges = map["edges"] if map is not None else []
-
+        if map is not None:
+            self.mapNodes = map["nodes"] if "nodes" in map else []
+            self.mapEdges = map["edges"] if "edges" in map else []
+            self.mapRegions = map["regions"] if "regions" in map else []
         self.enableAA = False
         self.gridEnabled = False
         self.gridSize = 100
@@ -64,6 +65,11 @@ class FreeFormMap(QtWidgets.QWidget):
                     id = edge["id"] if "id" in edge else tools.generateId(self)
                     data = edge["data"] if "data" in edge else None
                     self.addConnection(self.nodes[edge["node1"]], self.nodes[edge["node2"]], id=id, data=data)
+                for reg in self.mapRegions:
+                    id = reg["id"] if "id" in reg else tools.generateId(self)
+                    color = reg["color"] if "color" in reg else None
+                    size = QtCore.QPoint(reg["size"][0], reg["size"][1])
+                    self.addRegion(reg["name"], reg["position"], size, color, id=id)
 
         if map is None:
             id1 = tools.generateId(self)
@@ -80,6 +86,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.tempLine = None
 
         self.setFocus()
+        self.setMouseTracking(True)
 
     def paintEvent(self, event):
         qp = QtGui.QPainter()
@@ -168,6 +175,13 @@ class FreeFormMap(QtWidgets.QWidget):
                 qp.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 10))
                 qp.drawText(node.pos().x(), node.pos().y(), 100*self.zoomLevel, 100*self.zoomLevel, QtCore.Qt.TextWordWrap | QtCore.Qt.AlignCenter, node.name)
                 qp.setPen(QtGui.QPen(QtGui.QColor(0, 0, 0), 0))
+            
+        qp.setBrush(QtGui.QBrush(QtGui.QColor(128, 255, 128)))
+        for r in self.regions.values():
+            qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
+            qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
+            qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
+            qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
 
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
         qp.drawEllipse(self.offset, 10, 10)
@@ -461,6 +475,29 @@ class FreeFormMap(QtWidgets.QWidget):
                 self.__mouseMovePos = globalPos
         elif type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget:
             self.selected.mouseMoveEvent(event)
+        else:
+            # TODO: fix this to actually bounds check properly
+            """localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
+            for region in self.regions.values():
+                horizontal = False
+                vertical = False
+                if region.pos().x() < localPos.x() < region.pos().x() + 10 or region.pos().x() + region.size.x() - 10 < localPos.x() < region.pos().x() + region.size.x():
+                    horizontal = True
+                if region.pos().y() < localPos.y() < region.pos().y() + 10 or region.pos().y() + region.size.y() - 10 < localPos.y() < region.pos().y() + region.size.y():
+                    vertical = True
+            if horizontal:
+                if vertical: 
+                    self.setCursor(QtCore.Qt.SizeFDiagCursor)
+                else:
+                    self.setCursor(QtCore.Qt.SizeHorCursor)
+            elif vertical:
+                self.setCursor(QtCore.Qt.SizeVerCursor)
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)"""
+            #qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
+            #qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
+            #qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
+            #qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
         self.update()
 
     def wheelEvent(self, event):
