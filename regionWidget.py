@@ -21,6 +21,8 @@ class QRegionWidget(draggableWidget.QDragWidget):
 
         self.moveNode(self.position[0], self.position[1])
 
+        self.resize(0,0)
+
         if self.color is None:
             self.color = "gray"
 
@@ -67,6 +69,7 @@ class QRegionWidget(draggableWidget.QDragWidget):
             self.__mouseMovePos = event.globalPos()
             self.startPos = event.globalPos()
             self.startMapperPos = self.position
+            self.moveOffset = event.globalPos() - self.pos()
             self.parent.updateSelection(self)
         if event.button() == QtCore.Qt.RightButton:
             self.startPos = event.globalPos()
@@ -81,15 +84,22 @@ class QRegionWidget(draggableWidget.QDragWidget):
             if (globalPos - self.startPos).manhattanLength() > 30 or self.freeDrag:
                 self.dragLeft = True
                 self.freeDrag = True
-                if self.parent.gridEnabled:
+                if self.parent.gridEnabled: # TODO: Fix this to use correct offset
                     pos1 = self.parent.mapFromGlobal(globalPos)
                     localGridSize = self.parent.gridSize * self.parent.zoomLevel
                     diff = globalPos - self.__mouseMovePos
+                    #newPos = self.mapFromGlobal(currPos + diff)
+                    newPos = pos1 - self.moveOffset
                     originalPos = self.pos()
                     self.moveNode(
-                        round(pos1.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
-                        round(pos1.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
+                        round(newPos.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
+                        round(newPos.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
                     )
+                    #self.moveNode(
+                    #    round(newPos.x() / localGridSize) * localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
+                    #    round(newPos.y() / localGridSize) * localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
+                    #)
+                    #self.moveNode(newPos.x(), newPos.y())
                     for id in self.captured:
                         node = self.parent.nodes[id]
                         node.moveDelta(self.pos().x() - originalPos.x(), self.pos().y() - originalPos.y())
@@ -144,3 +154,50 @@ class QRegionWidget(draggableWidget.QDragWidget):
                 return
 
         #super(DragButton, self).mouseReleaseEvent(event)
+
+    def customResizeEvent(self, event, sides):
+        if event.buttons() == QtCore.Qt.LeftButton:
+            # adjust offset from clicked point to origin of widget
+            currPos = self.mapToGlobal(self.pos())
+            globalPos = event.globalPos()
+            if (globalPos - self.startPos).manhattanLength() > 30 or self.freeDrag:
+                self.dragLeft = True
+                self.freeDrag = True
+                """if self.parent.gridEnabled:
+                    pos1 = self.parent.mapFromGlobal(globalPos)
+                    localGridSize = self.parent.gridSize * self.parent.zoomLevel
+                    self.moveNode(
+                        round(pos1.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
+                        round(pos1.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
+                    )
+                else:
+                    diff = globalPos - self.__mouseMovePos
+                    newPos = self.mapFromGlobal(currPos + diff)
+                    self.moveNode(newPos.x(), newPos.y())"""
+
+                delta = globalPos - self.__mouseMovePos
+                diff = delta
+                posDiff = QtCore.QPoint(0, 0)
+                if not (sides[0] or sides[1]):
+                    diff.setX(0)
+                if not (sides[2] or sides[3]):
+                    diff.setY(0)
+                if sides[0]:
+                    posDiff.setX(delta.x())
+                    diff.setX(-delta.x())
+                if sides[2]:
+                    posDiff.setY(delta.y())
+                    diff.setY(-delta.y())
+                newPos = self.mapFromGlobal(currPos + posDiff)
+                self.moveNode(newPos.x(), newPos.y())
+
+                newSize = self.size + diff
+                self.size = newSize
+
+                self.parent.update()
+                self.__mouseMovePos = globalPos
+        elif event.buttons() == QtCore.Qt.RightButton:
+            #self.parent.tempLine = 1
+            self.parent.tempLine = [self.center, event.windowPos()]
+            #self.parent.tempLine.setLine(self.center.x(), self.center.y(), event.windowPos().x(), event.windowPos().y())
+            self.parent.update()

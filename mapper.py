@@ -85,6 +85,8 @@ class FreeFormMap(QtWidgets.QWidget):
         self.snapMode = False
         self.tempLine = None
 
+        self.__resizing = False
+
         self.setFocus()
         self.setMouseTracking(True)
 
@@ -179,9 +181,9 @@ class FreeFormMap(QtWidgets.QWidget):
         qp.setBrush(QtGui.QBrush(QtGui.QColor(128, 255, 128)))
         for r in self.regions.values():
             qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
-            qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
-            qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
-            qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
+            #qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
+            #qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
+            #qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
 
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
         qp.drawEllipse(self.offset, 10, 10)
@@ -417,6 +419,9 @@ class FreeFormMap(QtWidgets.QWidget):
                 raise NotImplementedError("Atom type not yet implemented")
             self.update()
 
+    def mouseReleaseEvent(self, event):
+        self.__resizing = False
+
     def mouseDoubleClickEvent(self, event):
         localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
         for poly in self.polys:
@@ -450,6 +455,11 @@ class FreeFormMap(QtWidgets.QWidget):
                     self.updateSelection(node)
                     self.selected.mousePressEvent(event)
                     break
+
+        sides = tools.calcRegionSides(self, localPos)
+        if sides[0] or sides[1] or sides[2] or sides[3]:
+            self.__resizing = True
+            self.__pinnedSides = sides
         self.update()
         if self.selected is None and event.button() == QtCore.Qt.LeftButton:
             self.__mousePressPos = event.globalPos()
@@ -473,31 +483,25 @@ class FreeFormMap(QtWidgets.QWidget):
                     region.moveDelta(diff.x(), diff.y())
                 self.anchor.moveDelta(diff.x(), diff.y())
                 self.__mouseMovePos = globalPos
-        elif type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget:
-            self.selected.mouseMoveEvent(event)
         else:
-            # TODO: fix this to actually bounds check properly
-            """localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
-            for region in self.regions.values():
-                horizontal = False
-                vertical = False
-                if region.pos().x() < localPos.x() < region.pos().x() + 10 or region.pos().x() + region.size.x() - 10 < localPos.x() < region.pos().x() + region.size.x():
-                    horizontal = True
-                if region.pos().y() < localPos.y() < region.pos().y() + 10 or region.pos().y() + region.size.y() - 10 < localPos.y() < region.pos().y() + region.size.y():
-                    vertical = True
-            if horizontal:
-                if vertical: 
-                    self.setCursor(QtCore.Qt.SizeFDiagCursor)
-                else:
-                    self.setCursor(QtCore.Qt.SizeHorCursor)
-            elif vertical:
+            # Calculate which resize cursor to show for regions
+            localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
+            sides = tools.calcRegionSides(self, localPos)
+            if (sides[0] and sides[2]) or (sides[1] and sides[3]):
+                self.setCursor(QtCore.Qt.SizeFDiagCursor)
+            elif (sides[0] and sides[3]) or (sides[1] and sides[2]):
+                self.setCursor(QtCore.Qt.SizeBDiagCursor)
+            elif sides[0] or sides[1]:
+                self.setCursor(QtCore.Qt.SizeHorCursor)
+            elif sides[2] or sides[3]:
                 self.setCursor(QtCore.Qt.SizeVerCursor)
             else:
-                self.setCursor(QtCore.Qt.ArrowCursor)"""
-            #qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
-            #qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
-            #qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
-            #qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
+                self.setCursor(QtCore.Qt.ArrowCursor)
+                if (type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget):
+                    if self.__resizing and type(self.selected) == regionWidget.QRegionWidget:
+                        self.selected.customResizeEvent(event, self.__pinnedSides)
+                    else:
+                        self.selected.mouseMoveEvent(event)
         self.update()
 
     def wheelEvent(self, event):

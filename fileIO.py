@@ -136,6 +136,8 @@ def openFile(fileName):
         data = json.load(inputFile)
     if "edges" not in data:
         data["edges"] = []
+    if "regions" not in data:
+        data["regions"] = []
     return {
         "version": data["version"],
         "nodes": data["nodes"],

@@ -15,3 +15,17 @@ def generateId(mapper):
             if obj.id == newId:
                 idIsUnique = False
     return newId
+
+def calcRegionSides(mapper, localPos):
+    sides = [False, False, False, False]  # Left Right Up Down
+    for region in mapper.regions.values():
+        if region.pos().x() < localPos.x() < region.pos().x() + region.size.x() and region.pos().y() < localPos.y() < region.pos().y() + region.size.y():
+            if region.pos().x() - 10 < localPos.x() < region.pos().x() + 10:
+                sides[0] = True
+            if region.pos().x() + region.size.x() - 10 < localPos.x() < region.pos().x() + region.size.x() + 10:
+                sides[1] = True
+            if region.pos().y() - 10 < localPos.y() < region.pos().y() + 10:
+                sides[2] = True
+            if region.pos().y() + region.size.y() - 10 < localPos.y() < region.pos().y() + region.size.y() + 10:
+                sides[3] = True
+    return sides
