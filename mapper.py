@@ -532,7 +532,7 @@ class FreeFormMap(QtWidgets.QWidget):
         if not self.inEditMode and self.hasFocus():
             if action == "createNode":
                 self.createNewNode()
-            if action == "createRegion":
+            elif action == "createRegion":
                 self.createRegion()
             elif action == "editNode":
                 self.setEditNode(True)
