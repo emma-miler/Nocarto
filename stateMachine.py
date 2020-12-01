@@ -7,7 +7,8 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 # editNode      (node, oldData, newData)        node's data edited
 # addEdge       (edge)                          create edge
 # editEdge      (edge, oldData, newData)        edge's data edited
-# deleteEdge    (edge)                          edge deleted 
+# deleteEdge    (edge)                          edge deleted
+# moveRegion    (region, oldPos, newPos, captured)
 
 class StateMachine:
     def __init__(self, parent=None):
@@ -76,6 +77,18 @@ class StateMachine:
             "old": deltaOld,
             "new": deltaNew,
             "type": "editEdge",
+            "origin": str(origin),
+        })
+        self.updateList()
+
+    def moveRegion(self, region, oldPos, newPos, captured, origin=None):
+        self.checkOffset()
+        self.undoList.append({
+            "region": region,
+            "old": oldPos,
+            "new": newPos,
+            "captured": captured,
+            "type": "moveRegion",
             "origin": str(origin),
         })
         self.updateList()

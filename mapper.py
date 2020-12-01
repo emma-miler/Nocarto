@@ -181,18 +181,10 @@ class FreeFormMap(QtWidgets.QWidget):
             
         qp.setBrush(QtGui.QBrush(QtGui.QColor(128, 255, 128)))
         for r in self.regions.values():
-            pass
-            #qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-            #qp.drawEllipse(r.moved.x(), r.moved.y(), 10, 10)
-            #qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 255, 0)))
-            #qp.drawEllipse(r.startOffset.x(), r.startOffset.y(), 30, 30)
-            #qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255)))
-            #qp.drawEllipse(r.moveOffset.x(), r.moveOffset.y(), 30, 30)
-            #print(r.moveOffset.x(), r.moveOffset.y())
-            #qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
-            #qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
-            #qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
-            #qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
+            qp.drawRect(r.pos().x(), r.pos().y(), r.size.x()* self.zoomLevel, 10)
+            qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y()* self.zoomLevel)
+            qp.drawRect(r.pos().x(), r.pos().y() + (r.size.y()* self.zoomLevel) - 10, r.size.x()* self.zoomLevel, 10)
+            qp.drawRect(r.pos().x() + (r.size.x()* self.zoomLevel) - 10, r.pos().y(), 10, r.size.y()* self.zoomLevel)
 
         qp.setPen(QtGui.QPen(QtGui.QColor(255, 128, 128), 10))
         qp.drawEllipse(self.offset, 10, 10)
@@ -404,6 +396,16 @@ class FreeFormMap(QtWidgets.QWidget):
             elif atom["type"] == "deleteEdge":
                 data = atom["edge"]["data"] if "data" in atom["edge"] else None
                 self.addConnection(self.nodes[atom["edge"]["node1"]], self.nodes[atom["edge"]["node2"]], id=atom["edge"]["id"], data=data)
+            elif atom["type"] == "moveRegion":
+                #self.regions[atom["region"]].moveNode(atom["old"][0], atom["old"][1])
+                self.regions[atom["region"]].applyChange(atom["old"])
+                delta = [
+                    atom["old"]["position"][0] - atom["new"]["position"][0],
+                    atom["old"]["position"][1] - atom["new"]["position"][1]
+                ]
+                for id in atom["captured"]:
+                    node = self.nodes[id]
+                    node.moveDelta((delta[0] * self.zoomLevel), (delta[1] * self.zoomLevel))
             else:
                 raise NotImplementedError("Atom type not yet implemented")
             self.update()
@@ -434,6 +436,8 @@ class FreeFormMap(QtWidgets.QWidget):
             self.selected.mouseReleaseEvent(event)
             if self.resizing:
                 self.selected.calculateCaptured()
+        elif type(self.selected) == nodeWidget.QNodeWidget:
+            self.selected.mouseReleaseEvent(event)
         self.resizing = False
 
     def mouseDoubleClickEvent(self, event):

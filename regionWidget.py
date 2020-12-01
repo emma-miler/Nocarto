@@ -70,6 +70,7 @@ class QRegionWidget(draggableWidget.QDragWidget):
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
             self.startPos = event.pos()
+            self.startMapperPos = self.position
             self.movedSinceStart = QtCore.QPoint(0, 0)
             self.moveOffset = event.pos() - self.pos()
             self.calculateCaptured()
@@ -138,20 +139,14 @@ class QRegionWidget(draggableWidget.QDragWidget):
                 self.parent.addConnection(self, found)
 
         elif self.dragLeft and not self.parent.resizing:
-            deltaOld = {"position": self.startPos}
-            x = [
-                self.position[0] * self.parent.zoomLevel,
-                self.position[1] * self.parent.zoomLevel,
+            deltaOld = {"position": self.startMapperPos}
+            newPos = [
+                (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+                (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
             ]
-            deltaNew = {"position": [self.position[0], self.position[1]]}
-            self.position = deltaNew["position"]
-            print(deltaNew["position"], "     ", self.position)
-            self.parent.stateMachine.editNode(self.id, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
-            for node in self.captured:
-                deltaOld = {"position": self.capturedStart[node]}
-                n = self.parent.nodes[node]
-                deltaNew = {"position": [n.position[0], n.position[1]]}
-                self.parent.stateMachine.editNode(node, deltaOld, deltaNew, origin="regionWidget.py:mouseReleaseEvent")
+            deltaNew = {"position": newPos}
+            print(deltaOld, deltaNew)
+            self.parent.stateMachine.moveRegion(self.id, deltaOld, deltaNew, self.captured, origin="regionWidget.py:mouseReleaseEvent")
 
         if self.__mousePressPos is not None:
             moved = event.globalPos() - self.__mousePressPos 
@@ -181,7 +176,7 @@ class QRegionWidget(draggableWidget.QDragWidget):
                     newPos = self.mapFromGlobal(currPos + diff)
                     self.moveNode(newPos.x(), newPos.y())"""
 
-                delta = globalPos - self.__mouseMovePos
+                delta = (globalPos - self.__mouseMovePos) / self.parent.zoomLevel
                 diff = delta
                 posDiff = QtCore.QPoint(0, 0)
                 if not (sides[0] or sides[1]):
@@ -189,7 +184,7 @@ class QRegionWidget(draggableWidget.QDragWidget):
                 if not (sides[2] or sides[3]):
                     diff.setY(0)
                 if sides[0]:
-                    posDiff.setX(delta.x())
+                    posDiff.setX(delta.x() * self.parent.zoomLevel)
                     diff.setX(-delta.x())
                 if sides[2]:
                     posDiff.setY(delta.y())

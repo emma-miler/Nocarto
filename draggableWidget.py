@@ -18,6 +18,7 @@ class QDragWidget(QtWidgets.QWidget):
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
             self.startPos = event.globalPos()
+            self.startMapperPos = self.position
             self.movedSinceStart = QtCore.QPoint(0, 0)
             self.moveOffset = event.pos() - self.pos()
             self.parent.updateSelection(self)
@@ -79,11 +80,11 @@ class QDragWidget(QtWidgets.QWidget):
         elif self.dragLeft:
             deltaOld = {"position": self.startMapperPos}
             #deltaNew = {"position": self.position}
-            x = [
-                self.position[0] * self.parent.zoomLevel,
-                self.position[1] * self.parent.zoomLevel,
+            newPos = [
+                (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+                (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
             ]
-            deltaNew = {"position": [self.position[0], self.position[1]]}
+            deltaNew = {"position": newPos}
             self.position = deltaNew["position"]
             print(deltaNew["position"], "     ", self.position)
             self.parent.stateMachine.editNode(self.id, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
