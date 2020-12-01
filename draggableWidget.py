@@ -18,7 +18,8 @@ class QDragWidget(QtWidgets.QWidget):
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
             self.startPos = event.globalPos()
-            self.startMapperPos = self.position
+            self.movedSinceStart = QtCore.QPoint(0, 0)
+            self.moveOffset = event.pos() - self.pos()
             self.parent.updateSelection(self)
         if event.button() == QtCore.Qt.RightButton:
             self.startPos = event.globalPos()
@@ -35,11 +36,16 @@ class QDragWidget(QtWidgets.QWidget):
                 self.dragLeft = True
                 self.freeDrag = True
                 if self.parent.gridEnabled:
-                    pos1 = self.parent.mapFromGlobal(globalPos)
                     localGridSize = self.parent.gridSize * self.parent.zoomLevel
+                    diff = globalPos - self.__mouseMovePos
+                    self.movedSinceStart += diff
+                    newPos = self.startPos + self.movedSinceStart - self.moveOffset
+                    originalPos = self.pos()
                     self.moveNode(
-                        round(pos1.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
-                        round(pos1.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
+                        round(newPos.x() / localGridSize) * localGridSize - (
+                                localGridSize - (self.parent.offset.x() % localGridSize)) + localGridSize,
+                        round(newPos.y() / localGridSize) * localGridSize - (
+                                localGridSize - (self.parent.offset.y() % localGridSize)) + localGridSize
                     )
                 else:
                     diff = globalPos - self.__mouseMovePos
@@ -118,5 +124,9 @@ class QDragWidget(QtWidgets.QWidget):
     def moveDelta(self, x, y):
         self.move(self.pos().x() + x, self.pos().y() + y)
         self.widgetPosition = [self.pos().x(), self.pos().y()]
+        self.position = [
+            (self.widgetPosition[0] - self.parent.offset.x()) / self.parent.zoomLevel,
+            (self.widgetPosition[1] - self.parent.offset.y()) / self.parent.zoomLevel,
+        ]
         self.center = QtCore.QPoint(self.widgetPosition[0] + self.width() / 2,
                                     self.widgetPosition[1] + self.height() / 2)

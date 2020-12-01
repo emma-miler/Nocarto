@@ -85,7 +85,7 @@ class FreeFormMap(QtWidgets.QWidget):
         self.snapMode = False
         self.tempLine = None
 
-        self.__resizing = False
+        self.resizing = False
 
         self.setFocus()
         self.setMouseTracking(True)
@@ -127,7 +127,8 @@ class FreeFormMap(QtWidgets.QWidget):
         # Regions
 
         for region in self.regions.values():
-            region.calculateCaptured()
+            if not region.dragLeft:
+                region.calculateCaptured()
             if region == self.selected:
                 qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 64)))
                 qp.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255, 255)))
@@ -180,7 +181,15 @@ class FreeFormMap(QtWidgets.QWidget):
             
         qp.setBrush(QtGui.QBrush(QtGui.QColor(128, 255, 128)))
         for r in self.regions.values():
-            qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
+            pass
+            #qp.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+            #qp.drawEllipse(r.moved.x(), r.moved.y(), 10, 10)
+            #qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 255, 0)))
+            #qp.drawEllipse(r.startOffset.x(), r.startOffset.y(), 30, 30)
+            #qp.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 255)))
+            #qp.drawEllipse(r.moveOffset.x(), r.moveOffset.y(), 30, 30)
+            #print(r.moveOffset.x(), r.moveOffset.y())
+            #qp.drawRect(r.pos().x(), r.pos().y(), r.size.x(), 10)
             #qp.drawRect(r.pos().x(), r.pos().y(), 10, r.size.y())
             #qp.drawRect(r.pos().x(), r.pos().y() + r.size.y() - 10, r.size.x(), 10)
             #qp.drawRect(r.pos().x() + r.size.x() - 10, r.pos().y(), 10, r.size.y())
@@ -195,6 +204,7 @@ class FreeFormMap(QtWidgets.QWidget):
         node = list(self.nodes.values())[0]
         qp.drawText(1000, 250, f"Node X: {((node.position[0] + self.offset.x()) - self.anchor.widgetPosition[0]) * self.zoomLevel}")
         qp.drawText(1000, 300, f"Pos: {node.pos().x()}, {node.pos().y()}")
+        qp.drawText(1000, 350, f"Cursor: {QtGui.QCursor.pos().x()}, {QtGui.QCursor.pos().y()}")
 
         qp.end()
 
@@ -420,7 +430,11 @@ class FreeFormMap(QtWidgets.QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        self.__resizing = False
+        if type(self.selected) == regionWidget.QRegionWidget:
+            self.selected.mouseReleaseEvent(event)
+            if self.resizing:
+                self.selected.calculateCaptured()
+        self.resizing = False
 
     def mouseDoubleClickEvent(self, event):
         localPos = QtCore.QPoint(event.pos().x(), event.pos().y())
@@ -458,7 +472,7 @@ class FreeFormMap(QtWidgets.QWidget):
 
         sides = tools.calcRegionSides(self, localPos)
         if sides[0] or sides[1] or sides[2] or sides[3]:
-            self.__resizing = True
+            self.resizing = True
             self.__pinnedSides = sides
         self.update()
         if self.selected is None and event.button() == QtCore.Qt.LeftButton:
@@ -498,7 +512,7 @@ class FreeFormMap(QtWidgets.QWidget):
             else:
                 self.setCursor(QtCore.Qt.ArrowCursor)
                 if (type(self.selected) == nodeWidget.QNodeWidget or type(self.selected) == regionWidget.QRegionWidget):
-                    if self.__resizing and type(self.selected) == regionWidget.QRegionWidget:
+                    if self.resizing and type(self.selected) == regionWidget.QRegionWidget:
                         self.selected.customResizeEvent(event, self.__pinnedSides)
                     else:
                         self.selected.mouseMoveEvent(event)

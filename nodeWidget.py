@@ -24,6 +24,8 @@ class QNodeWidget(draggableWidget.QDragWidget):
 
         self.center = QtCore.QPoint(0,0)
 
+        self.resize(0, 0)
+
         self.moveNode(self.position[0], self.position[1])
 
         self.color = "gray"

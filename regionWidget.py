@@ -26,6 +26,8 @@ class QRegionWidget(draggableWidget.QDragWidget):
         if self.color is None:
             self.color = "gray"
 
+        self.dragLeft = False
+
         self.update()
 
         self.show()
@@ -67,12 +69,16 @@ class QRegionWidget(draggableWidget.QDragWidget):
         if event.button() == QtCore.Qt.LeftButton:
             self.__mousePressPos = event.globalPos()
             self.__mouseMovePos = event.globalPos()
-            self.startPos = event.globalPos()
-            self.startMapperPos = self.position
-            self.moveOffset = event.globalPos() - self.pos()
+            self.startPos = event.pos()
+            self.movedSinceStart = QtCore.QPoint(0, 0)
+            self.moveOffset = event.pos() - self.pos()
+            self.calculateCaptured()
+            self.capturedStart = {}
+            for node in self.captured:
+                self.capturedStart[node] = self.parent.nodes[node].position
             self.parent.updateSelection(self)
         if event.button() == QtCore.Qt.RightButton:
-            self.startPos = event.globalPos()
+            self.startPos = event.pos()
             self.dragRight = True
 
 
@@ -84,22 +90,18 @@ class QRegionWidget(draggableWidget.QDragWidget):
             if (globalPos - self.startPos).manhattanLength() > 30 or self.freeDrag:
                 self.dragLeft = True
                 self.freeDrag = True
-                if self.parent.gridEnabled: # TODO: Fix this to use correct offset
-                    pos1 = self.parent.mapFromGlobal(globalPos)
+                if self.parent.gridEnabled:
                     localGridSize = self.parent.gridSize * self.parent.zoomLevel
                     diff = globalPos - self.__mouseMovePos
-                    #newPos = self.mapFromGlobal(currPos + diff)
-                    newPos = pos1 - self.moveOffset
+                    self.movedSinceStart += diff
+                    newPos = self.startPos + self.movedSinceStart - self.moveOffset
                     originalPos = self.pos()
                     self.moveNode(
-                        round(newPos.x() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
-                        round(newPos.y() / localGridSize)*localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
+                        round(newPos.x() / localGridSize) * localGridSize - (
+                                    localGridSize - (self.parent.offset.x() % localGridSize)) + localGridSize,
+                        round(newPos.y() / localGridSize) * localGridSize - (
+                                    localGridSize - (self.parent.offset.y() % localGridSize)) +localGridSize
                     )
-                    #self.moveNode(
-                    #    round(newPos.x() / localGridSize) * localGridSize - (localGridSize - (self.parent.offset.x() % localGridSize)),
-                    #    round(newPos.y() / localGridSize) * localGridSize - (localGridSize - (self.parent.offset.y() % localGridSize))
-                    #)
-                    #self.moveNode(newPos.x(), newPos.y())
                     for id in self.captured:
                         node = self.parent.nodes[id]
                         node.moveDelta(self.pos().x() - originalPos.x(), self.pos().y() - originalPos.y())
@@ -135,9 +137,8 @@ class QRegionWidget(draggableWidget.QDragWidget):
             if found is not None:
                 self.parent.addConnection(self, found)
 
-        elif self.dragLeft:
-            deltaOld = {"position": self.startMapperPos}
-            #deltaNew = {"position": self.position}
+        elif self.dragLeft and not self.parent.resizing:
+            deltaOld = {"position": self.startPos}
             x = [
                 self.position[0] * self.parent.zoomLevel,
                 self.position[1] * self.parent.zoomLevel,
@@ -146,6 +147,11 @@ class QRegionWidget(draggableWidget.QDragWidget):
             self.position = deltaNew["position"]
             print(deltaNew["position"], "     ", self.position)
             self.parent.stateMachine.editNode(self.id, deltaOld, deltaNew, origin="nodeWidget.py:mouseReleaseEvent")
+            for node in self.captured:
+                deltaOld = {"position": self.capturedStart[node]}
+                n = self.parent.nodes[node]
+                deltaNew = {"position": [n.position[0], n.position[1]]}
+                self.parent.stateMachine.editNode(node, deltaOld, deltaNew, origin="regionWidget.py:mouseReleaseEvent")
 
         if self.__mousePressPos is not None:
             moved = event.globalPos() - self.__mousePressPos 
